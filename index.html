@@ -3,9 +3,14 @@
     <title>TEST D3</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" rel="stylesheet"/>
 
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js" integrity="sha384-6khuMg9gaYr5AxOqhkVIODVIvm9ynTT5J4V1cfthmT+emCG6yVmEZsRHdxlotUnm" crossorigin="anonymous"></script>
-    <script src="d3.min.js"></script>
+    <script src="https://unpkg.com/d3@5.16.0/dist/d3.min.js"></script>
+    <script src="https://unpkg.com/jspdf@latest/dist/jspdf.min.js"></script>
+    <!--<script src="https://cdn.rawgit.com/eligrey/canvas-toBlob.js/f1a01896135ab378aa5c0118eadd81da55e698d8/canvas-toBlob.js"></script>-->
+	  <script src="https://cdn.rawgit.com/eligrey/FileSaver.js/e9d941381475b5df8b7d7691013401e171014e89/FileSaver.min.js"></script>
+    <!--<script src="js/FileSaver.min.js"></script>-->
+
 
     <style>
       body {
@@ -19,17 +24,7 @@
       }
 
       .tooltip {
-          //position: absolute;
-          //text-align: center;
-          //width: 60px;
-          //height: 28px;
-          //padding: 4px 6px;
-          font: 12px sans-serif;
-          //background-color: #333;
-          //color: #FFF;
-          //border: 0px;
-          //border-radius: 8px;
-          //pointer-events: none;
+        font: 12px sans-serif;
       }
     </style>
   </head>
@@ -53,7 +48,16 @@
         </div>
       </div>
     </div>
-    <svg style="border:1px solid #F00"></svg>
+    <div>
+      <div style="border:2px solid #007C82;border-radius:4px;padding:2px;float:left">
+        <svg id="pgs_chart"></svg>
+      </div>
+      <div style="clear:both">
+    </div>
+    <div class="mt-2" style="display:flex">
+      <div class="btn btn-primary btn-sm mr-2" id="exportPDF">Export to PDF</div>
+      <div class="btn btn-primary btn-sm" id="exportPNG">Export to PNG</div>
+    </div>
     <script type="text/javascript">
 
       // generate random data with d3 range and map
@@ -79,7 +83,10 @@
             { pgs: 'PGS000146', grpName:'SA', y: -0.04312567, eb: -0.396279707, et: 0.310028367 },
             { pgs: 'PGS000147', grpName:'Euro', y: 0.18110247, eb: 0.15386322, et: 0.20834172 },
             { pgs: 'PGS000147', grpName:'AA', y: 0.094618527, eb: -0.176487732, et: 0.365724786 },
-            { pgs: 'PGS000147', grpName:'SA', y: 0.36462254, eb: 0.007658949, et: 0.721586142 }
+            { pgs: 'PGS000147', grpName:'SA', y: 0.36462254, eb: 0.007658949, et: 0.721586142 },
+            { pgs: 'PGS000148', grpName:'Euro', y: 0.276220866, eb: 0.249458753, et: 0.302982979 },
+            { pgs: 'PGS000148', grpName:'AA', y: -0.030533223, eb: -0.393065502, et: 0.331999056 },
+            { pgs: 'PGS000148', grpName:'SA', y: 0.156825277, eb: -0.120120911, et: 0.433771465 }
       ];
 
       //var width = document.documentElement.clientWidth,
@@ -90,7 +97,7 @@
       // SVG space
       var svg = d3.select('svg').attr('width', width).attr('height', height);
 
-      var margin = {top: 20, right: 50, bottom: 30, left: 50},
+      var margin = {top: 20, right: 100, bottom: 60, left: 60},
           chartWidth = width - margin.left - margin.right,
           chartHeight = height - margin.top - margin.bottom;
       var g = svg.append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
@@ -110,7 +117,7 @@
       // The scale spacing the groups:
       var x0 = d3.scaleBand()
           .domain(categoriesNames)
-          .rangeRound([0, width-100])
+          .rangeRound([0, chartWidth])
           .paddingInner(0.05);
 
       // The scale for spacing each group's bar:
@@ -149,6 +156,7 @@
       y.domain([min_value, max_value]);
 
 
+      // Draw data on the chart
       var addData = function() {
 
         selected_data = [];
@@ -172,7 +180,10 @@
           .attr('class', function(d) { return 'error '+d.grpName })
           .attr("stroke", function(d) { return z(d.grpName); })
           .attr("stroke-width", 2)
-        .merge(lines)
+          //.each(function(d,i){
+          //  addTooltip($(this), d);
+          //})
+        //.merge(lines)
           .attr('x1', function(d) { return x1(d.grpName); })
           .attr('x2', function(d) { return x1(d.grpName); })
           .attr('y1', function(d) { return y(d.et); })
@@ -182,6 +193,9 @@
           .attr('class', function(d) { return 'error '+d.grpName })
           .attr("stroke", function(d) { return z(d.grpName); })
           .attr("stroke-width", 2)
+          //.each(function(d,i){
+          //  addTooltip($(this), d);
+          //})
         //.merge(lines)
           .attr('x1', function(d) { return x1(d.grpName)-5; })
           .attr('x2', function(d) { return x1(d.grpName)+5; })
@@ -192,6 +206,9 @@
           .attr('class', function(d) { return 'error '+d.grpName })
           .attr("stroke", function(d) { return z(d.grpName); })
           .attr("stroke-width", 2)
+          //.each(function(d,i){
+          //  addTooltip($(this), d);
+          //})
         //.merge(lines)
           .attr('x1', function(d) { return x1(d.grpName)-5; })
           .attr('x2', function(d) { return x1(d.grpName)+5; })
@@ -208,29 +225,40 @@
         var points = chart_content.selectAll('circle.point')
           .data(selected_data);
             //.data(pgs_data);
-            //.attr("transform",function(d) { return "translate(" + x0(d.pgs) + ",0)"; });
 
         points.enter()
           .append('circle')
           .attr('class', function(d) { return 'point '+d.grpName })
+          .attr("transform",function(d) { return "translate(" + x0(d.pgs) + ",0)"; })
           .attr('r', 4)
           .attr("fill", function(d) { return z(d.grpName); })
-          .each(function(d,i){
-            $(this).tooltip({
-              'title': "Ancestry: <b>"+d.grpName + "</b><br/>Upper 95: <b>" + d.et + "</b><br/>Estimate: <b>" + d.y + "</b><br/>Lower 95: <b>" + d.eb+"</b>",
-              'placement': 'right',
-              'html': true
-            });
-          })
+          //.each(function(d,i){
+          //  addTooltip($(this), d);
+          //})
           .attr('cx', function(d) { return x1(d.grpName); })
           .attr('cy', function(d) { return y(d.y); });
 
-        chart_content.selectAll('circle.point')
-          //.transition()
-          .attr("transform",function(d) { return "translate(" + x0(d.pgs) + ",0)"; });
+
+
+        /* Rectangle area used by tooltip */
+        chart_content.selectAll('rect')
+          .data(selected_data)
+          .enter()
+          .append('rect')
+          .attr('class', function(d) { return 'rect '+d.grpName })
+          .attr("transform",function(d) { return "translate(" + x0(d.pgs) + ",0)"; })
+          .each(function(d,i){
+            addTooltip($(this), d);
+          })
+          .attr("x", function(d) { return x1(d.grpName) - 6; })
+          .attr("y", function(d) { return y(d.et) - 1; })
+          .attr("width", 12)
+          .attr("height", function(d) { return y(d.eb) - y(d.et) + 2; })
+          .attr("fill", "transparent");
       }
 
 
+      // Draw legend on the chart
       var addLegend = function() {
 
         var legend = g.append("g")
@@ -244,32 +272,38 @@
           .attr("class", function(d) { return d; } )
           .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
         legend.append("circle")
-          .attr("r", 3)
-          .attr("cx", width - 105)
+          .attr("r", 4)
+          .attr("cx", chartWidth + 20)
           .attr("cy", 9.5)
           .attr("fill", z);
         legend.append("line")
-          .attr("x1", width - 115)
-          .attr("x2", width - 95)
+          .attr("x1", chartWidth + 10)
+          .attr("x2", chartWidth + 30)
           .attr("y1", 9.5)
           .attr("y2", 9.5)
           .attr("stroke", z)
           .attr("stroke-width", 2);
         legend.append("text")
-          .attr("x", width - 60)
+          .attr("x", chartWidth + 40)
           .attr("y", 9.5)
           .attr("dy", "0.32em")
+          .attr("text-anchor", "start")
           .text(function(d) { return d; });
+      }
+
+
+      // Add tooltip on the chart elements
+      var addTooltip = function(elem, data) {
+        elem.tooltip({
+          'title': "Ancestry: <b>"+data.grpName + "</b><br/>Upper 95: <b>" + data.et + "</b><br/>Estimate: <b>" + data.y + "</b><br/>Lower 95: <b>" + data.eb+"</b>",
+          'placement': 'right',
+          'html': true
+        });
       }
 
 
       // This function is gonna change the opacity and size of selected and unselected circles
       function update_ancestry(){
-
-        // Remove chart content
-        svg.selectAll('.chart_content').remove();
-        svg.selectAll('.chart_legend').remove();
-
 
         groupNames = [];
         $(".benchmark_ancestry_cb").each(function () {
@@ -277,6 +311,11 @@
             groupNames.push($(this).val());
           }
         })
+
+        // Remove chart content
+        svg.selectAll('.chart_content').remove();
+        svg.selectAll('.chart_legend').remove();
+
         x1.domain(groupNames).rangeRound([0, x0.bandwidth()]);
         // Load updated set of data to the chart
         addData();
@@ -314,6 +353,25 @@
       var yAxis = g.append('g')
         .call( d3.axisLeft(y) );
 
+
+      // X axis label
+      svg.append("text")
+        .attr("transform", "translate(" + (chartWidth/2) + " ," + (height - 20) + ")")
+        .style("text-anchor", "middle")
+        .text("PGS Catalog Score ID");
+
+      // Y axis label
+      svg.append("text")
+          .attr("transform", "rotate(-90)")
+          .attr("y", 10)
+          .attr("x", 0 - (height / 2))
+          //.attr("y", 0 - margin.left)
+          //.attr("x",0 - (height / 2))
+          .attr("dy", "1em")
+          .style("text-anchor", "middle")
+          .text("Hazard Ratio (HR)");
+
+
       // Threshold/horizontal line
       if (min_value < 0) {
         g.append("line")
@@ -334,6 +392,143 @@
 
       // When a button change, I run the update function
       d3.selectAll(".benchmark_ancestry_cb").on("change",update_ancestry);
+
+
+
+      $("#exportPDF").click(() => {
+        let svg = new XMLSerializer().serializeToString(document.getElementById("pgs_chart"));
+        let canvas = document.createElement("canvas");
+        let svgSize = $(svg)[0];
+        // let svgSize = $(svg)[0].getBoundingClientRect();
+        canvas.width = svgSize.width.baseVal.value;
+        canvas.height = svgSize.height.baseVal.value;
+
+        let ctx = canvas.getContext("2d");
+        let doc = new jsPDF({
+          orientation: 'l',
+          unit: 'px'
+        });
+        let img = document.createElement("img");
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0);
+          doc.setFontSize(12);
+          doc.text(5, 10, 'PGS Chart');
+          doc.addImage(canvas.toDataURL("image/png"), 'PNG', 10, 10);
+          doc.save('pgs_benchmark.pdf');
+        };
+        img.setAttribute("src", "data:image/svg+xml;base64," + btoa(svg));
+      });
+
+
+      $("#exportPNG").on("click", function() {
+        var svgString = getSVGString(svg.node());
+      	svgString2Image( svgString, 2*width, 2*height, 'png');//, save ); // passes Blob and filesize String to the callback
+
+      	/*function save( dataBlob, filesize ){
+      		saveAs( dataBlob, 'PGS_benchmark.png' ); // FileSaver.js function
+      	}*/
+      });
+
+
+      // Below are the functions that handle actual exporting:
+      function getSVGString( svgNode ) {
+      	svgNode.setAttribute('xlink', 'http://www.w3.org/1999/xlink');
+      	var cssStyleText = getCSSStyles( svgNode );
+      	appendCSS( cssStyleText, svgNode );
+
+      	var serializer = new XMLSerializer();
+      	var svgString = serializer.serializeToString(svgNode);
+      	svgString = svgString.replace(/(\w+)?:?xlink=/g, 'xmlns:xlink='); // Fix root xlink without namespace
+      	svgString = svgString.replace(/NS\d+:href/g, 'xlink:href'); // Safari NS namespace fix
+
+      	return svgString;
+
+        // Extract CSS styling
+      	function getCSSStyles( parentElement ) {
+      		var selectorTextArr = [];
+
+      		// Add Parent element Id and Classes to the list
+      		selectorTextArr.push( '#'+parentElement.id );
+      		for (var c = 0; c < parentElement.classList.length; c++) {
+      			if ( !contains('.'+parentElement.classList[c], selectorTextArr) ) {
+      				selectorTextArr.push( '.'+parentElement.classList[c] );
+            }
+          }
+
+      		// Add Children element Ids and Classes to the list
+      		var nodes = parentElement.getElementsByTagName("*");
+      		for (var i = 0; i < nodes.length; i++) {
+      			var id = nodes[i].id;
+      			if ( !contains('#'+id, selectorTextArr) ) {
+      				selectorTextArr.push( '#'+id );
+            }
+
+      			var classes = nodes[i].classList;
+      			for (var c = 0; c < classes.length; c++)
+      				if ( !contains('.'+classes[c], selectorTextArr) ) {
+      					selectorTextArr.push( '.'+classes[c] );
+              }
+      		}
+
+      		// Extract CSS Rules
+      		var extractedCSSText = "";
+      		for (var i = 0; i < document.styleSheets.length; i++) {
+      			var s = document.styleSheets[i];
+      			try {
+      			  if(!s.cssRules) continue;
+      			} catch( e ) {
+      		    if(e.name !== 'SecurityError') throw e; // for Firefox
+      		    continue;
+      		  }
+
+      			var cssRules = s.cssRules;
+      			for (var r = 0; r < cssRules.length; r++) {
+      				if ( contains( cssRules[r].selectorText, selectorTextArr ) ) {
+      					extractedCSSText += cssRules[r].cssText;
+              }
+      			}
+      		}
+
+      		return extractedCSSText;
+
+      		function contains(str,arr) {
+      			return arr.indexOf( str ) === -1 ? false : true;
+      		}
+      	}
+
+      	function appendCSS( cssText, element ) {
+      		var styleElement = document.createElement("style");
+      		styleElement.setAttribute("type","text/css");
+      		styleElement.innerHTML = cssText;
+      		var refNode = element.hasChildNodes() ? element.children[0] : null;
+      		element.insertBefore( styleElement, refNode );
+      	}
+      }
+
+      function svgString2Image( svgString, width, height, format) {//, callback ) {
+      	var format = format ? format : 'png';
+
+      	var imgsrc = 'data:image/svg+xml;base64,'+ btoa( unescape( encodeURIComponent( svgString ) ) ); // Convert SVG string to data URL
+
+      	var canvas = document.createElement("canvas");
+      	var context = canvas.getContext("2d");
+
+      	canvas.width = width;
+      	canvas.height = height;
+
+      	var image = new Image();
+      	image.onload = function() {
+      		context.clearRect ( 0, 0, width, height );
+      		context.drawImage(image, 0, 0, width, height);
+
+      		canvas.toBlob( function(blob) {
+            saveAs( blob, 'PGS_benchmark.png' );
+      			//var filesize = Math.round( blob.length/1024 ) + ' KB';
+      			//if ( callback ) callback( blob, filesize );
+      		});
+      	};
+      	image.src = imgsrc;
+      }
 
     </script>
   </body>
