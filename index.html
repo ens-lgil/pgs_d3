@@ -33,27 +33,26 @@
   <body>
     <h2>D3 test</h2>
     <div style="display:flex;margin-bottom:1rem">
-      <div style="border:1px solid #CCC;border-radius:4px;padding:4px 10px">
-        <div>Ancestry</div>
+      <!-- Ancestry form -->
+      <div id="benchmark_ancestry" class="mr-3" style="border:1px solid #CCC;border-radius:4px;padding:4px 10px">
+        <div class="mb-1" style="border-bottom:1px solid #CCC;padding-bottom:4px">Ancestry</div>
+      </div>
+      <!-- Performance metric form -->
+      <div id="benchmark_metric" style="border:1px solid #CCC;border-radius:4px;padding:4px 10px">
+        <div class="mb-2" style="border-bottom:1px solid #CCC;padding-bottom:4px">Performance metric</div>
         <div>
-          <input type="checkbox" class="benchmark_ancestry_cb" checked id="grpName_1" value="Euro">
-          <label class="mb-0" for="grpName_1"> Euro</label>
-        </div>
-        <div>
-          <input type="checkbox" class="benchmark_ancestry_cb" checked id="grpName_2" value="AA">
-          <label class="mb-0" for="grpName_3"> AA</label>
-        </div>
-        <div>
-          <input type="checkbox" class="benchmark_ancestry_cb" checked id="grpName_3" value="SA">
-          <label class="mb-0" for="grpName_2"> SA</label>
+          <select id="benchmark_metric_select">
+          </select>
         </div>
       </div>
     </div>
+
+
     <div>
       <div style="border:2px solid #007C82;border-radius:4px;padding:2px;float:left">
         <svg id="pgs_chart"></svg>
       </div>
-      <div style="clear:both">
+      <div style="clear:both"></div>
     </div>
     <div class="mt-2" style="display:flex">
       <div class="btn btn-primary btn-sm mr-2" id="exportPDF">Export to PDF</div>
@@ -61,22 +60,84 @@
     </div>
     <script type="text/javascript">
 
-      const pgs_data = [
-          { pgs: 'PGS000055', grpName:'Euro', y: 0.32104382, eb: 0.293867188, et: 0.348220452 },
-          { pgs: 'PGS000055', grpName:'AA', y: 0.184892118, eb: -0.089983334, et: 0.45976757 },
-          { pgs: 'PGS000055', grpName:'SA', y: -0.105811523, eb: -0.46257336, et: 0.250950314 },
-          { pgs: 'PGS000074', grpName:'Euro', y: 0.296599424, eb: 0.270089896, et: 0.323108952 },
-          { pgs: 'PGS000074', grpName:'AA', y: -0.00856871, eb: -0.285986641, et: 0.268849221 },
-          { pgs: 'PGS000074', grpName:'SA', y: 0.202909229, eb: -0.15867862, et: 0.564497078 },
-          { pgs: 'PGS000146', grpName:'Euro', y: 0.26389975, eb: 0.236905544, et: 0.290893957 },
-          { pgs: 'PGS000146', grpName:'AA', y: 0.055109248, eb: -0.221344814, et: 0.331563311 },
-          { pgs: 'PGS000146', grpName:'SA', y: -0.04312567, eb: -0.396279707, et: 0.310028367 },
-          { pgs: 'PGS000147', grpName:'Euro', y: 0.18110247, eb: 0.15386322, et: 0.20834172 },
-          { pgs: 'PGS000147', grpName:'AA', y: 0.094618527, eb: -0.176487732, et: 0.365724786 },
-          { pgs: 'PGS000147', grpName:'SA', y: 0.36462254, eb: 0.007658949, et: 0.721586142 },
-          { pgs: 'PGS000148', grpName:'Euro', y: 0.276220866, eb: 0.249458753, et: 0.302982979 },
-          { pgs: 'PGS000148', grpName:'AA', y: -0.030533223, eb: -0.393065502, et: 0.331999056 },              { pgs: 'PGS000148', grpName:'SA', y: 0.156825277, eb: -0.120120911, et: 0.433771465 }
-      ];
+      const pgs_data = {
+        pgs_ids: ['PGS000055', 'PGS000074', 'PGS000146', 'PGS000147', 'PGS000148'],
+        ancestry: ['Euro', 'SA', 'AA'],
+        data: {
+        "HR":
+          [
+            { pgs: 'PGS000055', grpName:'Euro', y: 0.32104382, eb: 0.293867188, et: 0.348220452 },
+            { pgs: 'PGS000055', grpName:'AA', y: 0.184892118, eb: -0.089983334, et: 0.45976757 },
+            { pgs: 'PGS000055', grpName:'SA', y: -0.105811523, eb: -0.46257336, et: 0.250950314 },
+            { pgs: 'PGS000074', grpName:'Euro', y: 0.296599424, eb: 0.270089896, et: 0.323108952 },
+            { pgs: 'PGS000074', grpName:'AA', y: -0.00856871, eb: -0.285986641, et: 0.268849221 },
+            { pgs: 'PGS000074', grpName:'SA', y: 0.202909229, eb: -0.15867862, et: 0.564497078 },
+            { pgs: 'PGS000146', grpName:'Euro', y: 0.26389975, eb: 0.236905544, et: 0.290893957 },
+            { pgs: 'PGS000146', grpName:'AA', y: 0.055109248, eb: -0.221344814, et: 0.331563311 },
+            { pgs: 'PGS000146', grpName:'SA', y: -0.04312567, eb: -0.396279707, et: 0.310028367 },
+            { pgs: 'PGS000147', grpName:'Euro', y: 0.18110247, eb: 0.15386322, et: 0.20834172 },
+            { pgs: 'PGS000147', grpName:'AA', y: 0.094618527, eb: -0.176487732, et: 0.365724786 },
+            { pgs: 'PGS000147', grpName:'SA', y: 0.36462254, eb: 0.007658949, et: 0.721586142 },
+            { pgs: 'PGS000148', grpName:'Euro', y: 0.276220866, eb: 0.249458753, et: 0.302982979 },
+            { pgs: 'PGS000148', grpName:'AA', y: -0.030533223, eb: -0.393065502, et: 0.331999056 },
+            { pgs: 'PGS000148', grpName:'SA', y: 0.156825277, eb: -0.120120911, et: 0.433771465 },
+          ],
+          "OR":
+          [
+            { pgs: 'PGS000055', grpName:'Euro', y: 0.324198219, eb: 0.296680808, et: 0.35171563 },
+            { pgs: 'PGS000055', grpName:'AA', y: 0.186378574, eb: -0.090127951, et: 0.462885099 },
+            { pgs: 'PGS000055', grpName:'SA', y: -0.105840627, eb: -0.463924392, et: 0.252243139 },
+            { pgs: 'PGS000074', grpName:'Euro', y: 0.299848205, eb: 0.272997429, et: 0.326698981 },
+            { pgs: 'PGS000074', grpName:'AA', y: -0.007511791, eb: -0.286528143, et: 0.271504561 },
+            { pgs: 'PGS000074', grpName:'SA', y: 0.201794619, eb: -0.1598984, et: 0.563487637 },
+            { pgs: 'PGS000146', grpName:'Euro', y: 0.26627698, eb: 0.238976272, et: 0.293577688 },
+            { pgs: 'PGS000146', grpName:'AA', y: 0.06021376, eb: -0.217332826, et: 0.337760347 },
+            { pgs: 'PGS000146', grpName:'SA', y: -0.047990366, eb: -0.404063973, et: 0.308083241 },
+            { pgs: 'PGS000147', grpName:'Euro', y: 0.182738926, eb: 0.155223691, et: 0.210254161 },
+            { pgs: 'PGS000147', grpName:'AA', y: 0.098039114, eb: -0.17555295, et: 0.371631179 },
+            { pgs: 'PGS000147', grpName:'SA', y: 0.362819202, eb: 0.004050246, et: 0.721588159 },
+            { pgs: 'PGS000148', grpName:'Euro', y: 0.278911504, eb: 0.251822021, et: 0.306000987 },
+            { pgs: 'PGS000148', grpName:'AA', y: 0.161646643, eb: -0.117465003, et: 0.44075829 },
+            { pgs: 'PGS000148', grpName:'SA', y: -0.030901289, eb: -0.392341054, et: 0.330538475 },
+          ],
+          "C-index":
+          [
+            { pgs: 'PGS000055', grpName:'Euro', y: 0.592294449 },
+            { pgs: 'PGS000055', grpName:'AA', y: 0.577435688 },
+            { pgs: 'PGS000055', grpName:'SA', y: 0.666633932 },
+            { pgs: 'PGS000074', grpName:'Euro', y: 0.59053677 },
+            { pgs: 'PGS000074', grpName:'AA', y: 0.570306292 },
+            { pgs: 'PGS000074', grpName:'SA', y: 0.667517775 },
+            { pgs: 'PGS000146', grpName:'Euro', y: 0.578149953 },
+            { pgs: 'PGS000146', grpName:'AA', y: 0.565436051 },
+            { pgs: 'PGS000146', grpName:'SA', y: 0.666083985 },
+            { pgs: 'PGS000147', grpName:'Euro', y: 0.55475533 },
+            { pgs: 'PGS000147', grpName:'AA', y: 0.569886248 },
+            { pgs: 'PGS000147', grpName:'SA', y: 0.679871941 },
+            { pgs: 'PGS000148', grpName:'Euro', y: 0.583709198 },
+            { pgs: 'PGS000148', grpName:'AA', y: 0.578843403 },
+            { pgs: 'PGS000148', grpName:'SA', y: 0.666260753 },
+          ],
+        "DeltaC":
+          [
+            { pgs: 'PGS000055', grpName:'Euro', y: 0.06599071 },
+            { pgs: 'PGS000055', grpName:'AA', y: 0.006312013 },
+            { pgs: 'PGS000055', grpName:'SA', y: 0.001414149 },
+            { pgs: 'PGS000074', grpName:'Euro', y: 0.064233032 },
+            { pgs: 'PGS000074', grpName:'AA', y: -0.000817383 },
+            { pgs: 'PGS000074', grpName:'SA', y: 0.002297993 },
+            { pgs: 'PGS000146', grpName:'Euro', y: 0.051846214 },
+            { pgs: 'PGS000146', grpName:'AA', y: -0.005687623 },
+            { pgs: 'PGS000146', grpName:'SA', y: 0.000864202 },
+            { pgs: 'PGS000147', grpName:'Euro', y: 0.028451592 },
+            { pgs: 'PGS000147', grpName:'AA', y: -0.001237427 },
+            { pgs: 'PGS000147', grpName:'SA', y: 0.014652159 },
+            { pgs: 'PGS000148', grpName:'Euro', y: 0.05740546 },
+            { pgs: 'PGS000148', grpName:'AA', y: 0.007719728 },
+            { pgs: 'PGS000148', grpName:'SA', y: 0.001040971 },
+          ]
+        }
+      };
 
       //var width = document.documentElement.clientWidth,
       //    height = document.documentElement.clientHeight;
@@ -85,10 +146,32 @@
 
       $( document ).ready(function() {
 
-        var benchmark = new Benchmark(pgs_data,width,height);
+        // Ancestry
+        var ancestry_html_cb = '';
+        for (var i=0; i<pgs_data.ancestry.length;i++) {
+          id = 'gpName_'+i;
+          ancestry_html_cb += '<div>'+
+                              '  <input type="checkbox" class="benchmark_ancestry_cb" checked value="'+pgs_data.ancestry[i]+'" id="'+id+'">'+
+                              '  <label class="mb-0" for="'+id+'"> '+pgs_data.ancestry[i]+'</label>'+
+                              '</div>';
+        }
+        $("#benchmark_ancestry").append(ancestry_html_cb);
+
+        // Performance metric
+        metrics = Object.keys(pgs_data.data);
+        for (var i=0; i<metrics.length;i++) {
+          metric = metrics[i];
+          var option = new Option(metric, metric);
+          $("#benchmark_metric_select").append(option);
+        }
+
+        var benchmark = new PGSBenchmark(pgs_data,width,height);
 
         $(".benchmark_ancestry_cb").on("change",function() {
             benchmark.update_ancestry();
+        });
+        $("#benchmark_metric_select").change(function() {
+          benchmark.update_yaxis();
         });
       });
     </script>

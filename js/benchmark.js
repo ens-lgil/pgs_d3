@@ -1,5 +1,6 @@
+var svg_id = 'pgs_chart';
 
-class Benchmark {
+class PGSBenchmark {
 
   constructor(chart_data,width,height) {
 
@@ -16,18 +17,22 @@ class Benchmark {
 
     this.chart_data = chart_data;
 
+    this.metric = $("#benchmark_metric_select option:selected").val();
+
+    this.selected_data = chart_data["data"][this.metric];
+
     // X categories and groups
-    this.categoriesNames = [...new Set(chart_data.map(item => item.pgs))];
-    this.groupNames = [];
+    this.categoriesNames = chart_data.pgs_ids;
+    this.groupNames = chart_data.ancestry;
     this.set_groupNames();
 
     // Draw chart
-    this.draw_chart(chart_data);
+    this.draw_chart();
   }
 
 
   // Draw the different components of the chart
-  draw_chart(chart_data) {
+  draw_chart() {
 
     // Define the div for the tooltip
     var div = d3.select("body").append("div")
@@ -37,16 +42,8 @@ class Benchmark {
     console.log(this.categoriesNames);
     console.log(this.groupNames);
 
-    var min_value = d3.min(chart_data, function(d) { return (d.eb); });
-    if (min_value > 0) {
-      min_value = 0
-    }
-    else {
-      min_value = min_value + ((min_value/100)*10);
-    }
-    var max_value = d3.max(chart_data, function(d) { return (d.et); });
-    max_value = max_value + ((max_value/100)*10);
-
+    var min_value = this.get_min_value();
+    var max_value = this.get_max_value();
 
     // The scale spacing the groups:
     this.x0 = d3.scaleBand()
@@ -94,6 +91,7 @@ class Benchmark {
       .attr('transform', 'translate(0,' + this.chartHeight + ')')
       .call( d3.axisBottom(this.x0) );
     var yAxis = this.g.append('g')
+      .attr("class", "yaxis")
       .call( d3.axisLeft(this.y) );
 
 
@@ -105,6 +103,7 @@ class Benchmark {
 
     // Y axis label
     this.svg.append("text")
+        .attr("class", "y_label")
         .attr("transform", "rotate(-90)")
         .attr("y", 10)
         .attr("x", 0 - (this.height / 2))
@@ -112,7 +111,7 @@ class Benchmark {
         //.attr("x",0 - (height / 2))
         .attr("dy", "1em")
         .style("text-anchor", "middle")
-        .text("Hazard Ratio (HR)");
+        .text(this.metric);
 
   }
 
@@ -136,9 +135,9 @@ class Benchmark {
   addData() {
 
     var selected_data = [];
-    for (var i=0;i<this.chart_data.length;i++) {
-      if (this.groupNames.indexOf(this.chart_data[i].grpName) != -1) {
-        selected_data.push(this.chart_data[i]);
+    for (var i=0;i<this.selected_data.length;i++) {
+      if (this.groupNames.indexOf(this.selected_data[i].grpName) != -1) {
+        selected_data.push(this.selected_data[i]);
       }
     }
 
@@ -152,42 +151,43 @@ class Benchmark {
 
     var obj = this;
 
-    // Vertical line
-    lines.enter().append('line')
-      .attr('class', 'error')
-      .attr('class', function(d) { return 'error '+d.grpName })
-      .attr("stroke", function(d) { return obj.z(d.grpName); })
-      .attr("stroke-width", 2)
-    //.merge(lines)
-      .attr('x1', function(d) { return obj.x1(d.grpName); })
-      .attr('x2', function(d) { return obj.x1(d.grpName); })
-      .attr('y1', function(d) { return obj.y(d.et); })
-      .attr('y2', function(d) { return obj.y(d.eb); });
-    // Horizontal line - top
-    lines.enter().append('line')
-      .attr('class', function(d) { return 'error '+d.grpName })
-      .attr("stroke", function(d) { return obj.z(d.grpName); })
-      .attr("stroke-width", 2)
-    //.merge(lines)
-      .attr('x1', function(d) { return obj.x1(d.grpName)-5; })
-      .attr('x2', function(d) { return obj.x1(d.grpName)+5; })
-      .attr('y1', function(d) { return obj.y(d.et); })
-      .attr('y2', function(d) { return obj.y(d.et); });
-    // Horizontal line - bottom
-    lines.enter().append('line')
-      .attr('class', function(d) { return 'error '+d.grpName })
-      .attr("stroke", function(d) { return obj.z(d.grpName); })
-      .attr("stroke-width", 2)
-    //.merge(lines)
-      .attr('x1', function(d) { return obj.x1(d.grpName)-5; })
-      .attr('x2', function(d) { return obj.x1(d.grpName)+5; })
-      .attr('y1', function(d) { return obj.y(d.eb); })
-      .attr('y2', function(d) { return obj.y(d.eb); });
+    if ("eb" in selected_data[0]) {
+      // Vertical line
+      lines.enter().append('line')
+        .attr('class', 'error')
+        .attr('class', function(d) { return 'error '+d.grpName })
+        .attr("stroke", function(d) { return obj.z(d.grpName); })
+        .attr("stroke-width", 2)
+      //.merge(lines)
+        .attr('x1', function(d) { return obj.x1(d.grpName); })
+        .attr('x2', function(d) { return obj.x1(d.grpName); })
+        .attr('y1', function(d) { return obj.y(d.et); })
+        .attr('y2', function(d) { return obj.y(d.eb); });
+      // Horizontal line - top
+      lines.enter().append('line')
+        .attr('class', function(d) { return 'error '+d.grpName })
+        .attr("stroke", function(d) { return obj.z(d.grpName); })
+        .attr("stroke-width", 2)
+      //.merge(lines)
+        .attr('x1', function(d) { return obj.x1(d.grpName)-5; })
+        .attr('x2', function(d) { return obj.x1(d.grpName)+5; })
+        .attr('y1', function(d) { return obj.y(d.et); })
+        .attr('y2', function(d) { return obj.y(d.et); });
+      // Horizontal line - bottom
+      lines.enter().append('line')
+        .attr('class', function(d) { return 'error '+d.grpName })
+        .attr("stroke", function(d) { return obj.z(d.grpName); })
+        .attr("stroke-width", 2)
+      //.merge(lines)
+        .attr('x1', function(d) { return obj.x1(d.grpName)-5; })
+        .attr('x2', function(d) { return obj.x1(d.grpName)+5; })
+        .attr('y1', function(d) { return obj.y(d.eb); })
+        .attr('y2', function(d) { return obj.y(d.eb); });
 
-    chart_content.selectAll('line.error')
-      //.transition()
-      .attr("transform",function(d) { return "translate(" + obj.x0(d.pgs) + ",0)"; });
-
+      chart_content.selectAll('line.error')
+        //.transition()
+        .attr("transform",function(d) { return "translate(" + obj.x0(d.pgs) + ",0)"; });
+    }
 
     /* Points */
 
@@ -205,21 +205,40 @@ class Benchmark {
       .attr('cy', function(d) { return obj.y(d.y); });
 
 
-    /* Rectangle area used by tooltip */
-    chart_content.selectAll('rect')
-      .data(selected_data)
-      .enter()
-      .append('rect')
-      .attr('class', function(d) { return 'rect '+d.grpName })
-      .attr("transform",function(d) { return "translate(" + obj.x0(d.pgs) + ",0)"; })
-      .each(function(d,i){
-        addTooltip($(this), d);
-      })
-      .attr("x", function(d) { return obj.x1(d.grpName) - 6; })
-      .attr("y", function(d) { return obj.y(d.et) - 1; })
-      .attr("width", 12)
-      .attr("height", function(d) { return obj.y(d.eb) - obj.y(d.et) + 2; })
-      .attr("fill", "transparent");
+    if ("eb" in selected_data[0]) {
+      /* Rectangle area used by tooltip */
+      chart_content.selectAll('rect')
+        .data(selected_data)
+        .enter()
+        .append('rect')
+        .attr('class', function(d) { return 'rect '+d.grpName })
+        .attr("transform",function(d) { return "translate(" + obj.x0(d.pgs) + ",0)"; })
+        .each(function(d,i){
+          addTooltip($(this), d);
+        })
+        .attr("x", function(d) { return obj.x1(d.grpName) - 6; })
+        .attr("y", function(d) { return obj.y(d.et) - 1; })
+        .attr("width", 12)
+        .attr("height", function(d) { return obj.y(d.eb) - obj.y(d.et) + 2; })
+        .attr("fill", "transparent");
+    }
+    else {
+      /* Rectangle area used by tooltip */
+      chart_content.selectAll('rect')
+          .data(selected_data)
+          .enter()
+          .append('rect')
+          .attr('class', function(d) { return 'rect '+d.grpName })
+          .attr("transform",function(d) { return "translate(" + obj.x0(d.pgs) + ",0)"; })
+          .each(function(d,i){
+            addTooltip($(this), d);
+          })
+          .attr("x", function(d) { return obj.x1(d.grpName) - 3; })
+          .attr("y", function(d) { return obj.y(d.y) - 3; })
+          .attr("width", 10)
+          .attr("height", function(d) { return 10; })
+          .attr("fill", "transparent");
+    }
   }
 
 
@@ -271,7 +290,7 @@ class Benchmark {
   // This function updates the chart when an ancestry is checked in or out
   update_ancestry(){
 
-    // Reset the lisy of group names (Ancestry)
+    // Reset the list of group names (Ancestry)
     this.set_groupNames();
 
     // Remove chart content
@@ -304,149 +323,233 @@ class Benchmark {
     //x1.domain(checked_gp_names);
     x1.domain(checked_gp_names).rangeRound([0, x0.bandwidth()]);*/
   }
+
+  update_yaxis(){
+
+    // Change the performance metric
+    this.metric = $("#benchmark_metric_select option:selected").val();
+
+    this.selected_data = this.chart_data["data"][this.metric];
+
+    // Remove chart content
+    this.svg.selectAll('.chart_content').remove();
+
+    // Redraw Y axis
+
+    var min_value = this.get_min_value();
+    var max_value = this.get_max_value();
+
+    this.y = d3.scaleLinear()
+        .domain([min_value, max_value])
+        .rangeRound([this.chartHeight, 0]);
+
+    this.svg.select(".yaxis")
+      .transition().duration(800)
+      .call( d3.axisLeft(this.y) );
+
+    // Y axis label
+    this.svg.selectAll('.y_label').remove();
+    this.svg.append("text")
+        .attr("class", "y_label")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 10)
+        .attr("x", 0 - (this.height / 2))
+        .attr("dy", "1em")
+        .style("text-anchor", "middle")
+        .text(this.metric);
+
+
+    // Load updated set of data to the chart
+    this.addData();
+  }
+
+  get_min_value(){
+    var min_value = d3.min(this.selected_data, function(d) {
+      if ("eb" in d) {
+        return (d.eb);
+      }
+      else {
+        return (d.y);
+      }
+    });
+    if (min_value > 0) {
+      min_value = 0
+    }
+    else {
+      min_value = min_value + ((min_value/100)*10);
+    }
+    return min_value;
+  }
+
+  get_max_value(){
+    var max_value = d3.max(this.selected_data, function(d) {
+      if ("et" in d) {
+        return (d.et);
+      }
+      else {
+        return (d.y);
+      }
+    });
+    return max_value + ((max_value/100)*10);
+  }
 }
 
 
 // Add tooltip on the chart elements
 var addTooltip = function(elem, data) {
+  var title = "<b>"+data.grpName + "</b>";
+  if (data.et) {
+    title += "<br/>Upper 95: <b>" + data.et + "</b><br/>Estimate: <b>" + data.y + "</b><br/>Lower 95: <b>" + data.eb+"</b>";
+  }
+  else {
+    title += "<br/>Value: <b>" + data.y + "</b>";
+  }
   elem.tooltip({
-    'title': "Ancestry: <b>"+data.grpName + "</b><br/>Upper 95: <b>" + data.et + "</b><br/>Estimate: <b>" + data.y + "</b><br/>Lower 95: <b>" + data.eb+"</b>",
+    'title': title,
     'placement': 'right',
     'html': true
   });
 }
 
-$("#exportPDF").click(() => {
-  let svg = new XMLSerializer().serializeToString(document.getElementById("pgs_chart"));
-  let canvas = document.createElement("canvas");
-  let svgSize = $(svg)[0];
-  // let svgSize = $(svg)[0].getBoundingClientRect();
-  canvas.width = svgSize.width.baseVal.value;
-  canvas.height = svgSize.height.baseVal.value;
+$( document ).ready(function() {
 
-  let ctx = canvas.getContext("2d");
-  let doc = new jsPDF({
-    orientation: 'l',
-    unit: 'px'
-  });
-  let img = document.createElement("img");
-  img.onload = () => {
-    ctx.drawImage(img, 0, 0);
-    doc.setFontSize(12);
-    doc.text(5, 10, 'PGS Chart');
-    doc.addImage(canvas.toDataURL("image/png"), 'PNG', 10, 10);
-    doc.save('pgs_benchmark.pdf');
-  };
-  img.setAttribute("src", "data:image/svg+xml;base64," + btoa(svg));
-});
+  //$("#exportPDF").click(() => {
+  $("#exportPDF").on("click", function() {
 
+    console.log("Export PDF");
+    let svg = new XMLSerializer().serializeToString(document.getElementById(svg_id));
+    let canvas = document.createElement("canvas");
+    let svgSize = $(svg)[0];
+    // let svgSize = $(svg)[0].getBoundingClientRect();
+    canvas.width = svgSize.width.baseVal.value;
+    canvas.height = svgSize.height.baseVal.value;
 
-$("#exportPNG").on("click", function() {
-  var svgString = getSVGString(svg.node());
-  svgString2Image( svgString, 2*width, 2*height, 'png');//, save ); // passes Blob and filesize String to the callback
-
-  /*function save( dataBlob, filesize ){
-    saveAs( dataBlob, 'PGS_benchmark.png' ); // FileSaver.js function
-  }*/
-});
-
-
-// Below are the functions that handle actual exporting:
-function getSVGString( svgNode ) {
-  svgNode.setAttribute('xlink', 'http://www.w3.org/1999/xlink');
-  var cssStyleText = getCSSStyles( svgNode );
-  appendCSS( cssStyleText, svgNode );
-
-  var serializer = new XMLSerializer();
-  var svgString = serializer.serializeToString(svgNode);
-  svgString = svgString.replace(/(\w+)?:?xlink=/g, 'xmlns:xlink='); // Fix root xlink without namespace
-  svgString = svgString.replace(/NS\d+:href/g, 'xlink:href'); // Safari NS namespace fix
-
-  return svgString;
-
-  // Extract CSS styling
-  function getCSSStyles( parentElement ) {
-    var selectorTextArr = [];
-
-    // Add Parent element Id and Classes to the list
-    selectorTextArr.push( '#'+parentElement.id );
-    for (var c = 0; c < parentElement.classList.length; c++) {
-      if ( !contains('.'+parentElement.classList[c], selectorTextArr) ) {
-        selectorTextArr.push( '.'+parentElement.classList[c] );
-      }
-    }
-
-    // Add Children element Ids and Classes to the list
-    var nodes = parentElement.getElementsByTagName("*");
-    for (var i = 0; i < nodes.length; i++) {
-      var id = nodes[i].id;
-      if ( !contains('#'+id, selectorTextArr) ) {
-        selectorTextArr.push( '#'+id );
-      }
-
-      var classes = nodes[i].classList;
-      for (var c = 0; c < classes.length; c++)
-        if ( !contains('.'+classes[c], selectorTextArr) ) {
-          selectorTextArr.push( '.'+classes[c] );
-        }
-    }
-
-    // Extract CSS Rules
-    var extractedCSSText = "";
-    for (var i = 0; i < document.styleSheets.length; i++) {
-      var s = document.styleSheets[i];
-      try {
-        if(!s.cssRules) continue;
-      } catch( e ) {
-        if(e.name !== 'SecurityError') throw e; // for Firefox
-        continue;
-      }
-
-      var cssRules = s.cssRules;
-      for (var r = 0; r < cssRules.length; r++) {
-        if ( contains( cssRules[r].selectorText, selectorTextArr ) ) {
-          extractedCSSText += cssRules[r].cssText;
-        }
-      }
-    }
-
-    return extractedCSSText;
-
-    function contains(str,arr) {
-      return arr.indexOf( str ) === -1 ? false : true;
-    }
-  }
-
-  function appendCSS( cssText, element ) {
-    var styleElement = document.createElement("style");
-    styleElement.setAttribute("type","text/css");
-    styleElement.innerHTML = cssText;
-    var refNode = element.hasChildNodes() ? element.children[0] : null;
-    element.insertBefore( styleElement, refNode );
-  }
-}
-
-function svgString2Image( svgString, width, height, format) {//, callback ) {
-  var format = format ? format : 'png';
-
-  var imgsrc = 'data:image/svg+xml;base64,'+ btoa( unescape( encodeURIComponent( svgString ) ) ); // Convert SVG string to data URL
-
-  var canvas = document.createElement("canvas");
-  var context = canvas.getContext("2d");
-
-  canvas.width = width;
-  canvas.height = height;
-
-  var image = new Image();
-  image.onload = function() {
-    context.clearRect ( 0, 0, width, height );
-    context.drawImage(image, 0, 0, width, height);
-
-    canvas.toBlob( function(blob) {
-      saveAs( blob, 'PGS_benchmark.png' );
-      //var filesize = Math.round( blob.length/1024 ) + ' KB';
-      //if ( callback ) callback( blob, filesize );
+    let ctx = canvas.getContext("2d");
+    let doc = new jsPDF({
+      orientation: 'l',
+      unit: 'px'
     });
-  };
-  image.src = imgsrc;
-}
+    let img = document.createElement("img");
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0);
+      doc.setFontSize(12);
+      doc.text(5, 10, 'PGS Chart');
+      doc.addImage(canvas.toDataURL("image/png"), 'PNG', 10, 10);
+      doc.save('pgs_benchmark.pdf');
+    };
+    img.setAttribute("src", "data:image/svg+xml;base64," + btoa(svg));
+  });
+
+
+  $("#exportPNG").on("click", function() {
+    console.log("Export PNG");
+    svg = d3.select("#"+svg_id);
+    var svgString = getSVGString(svg.node());
+    svgString2Image( svgString, 2*width, 2*height, 'png');//, save ); // passes Blob and filesize String to the callback
+
+    /*function save( dataBlob, filesize ){
+      saveAs( dataBlob, 'PGS_benchmark.png' ); // FileSaver.js function
+    }*/
+  });
+
+});
+
+  // Below are the functions that handle actual exporting:
+  function getSVGString( svgNode ) {
+    svgNode.setAttribute('xlink', 'http://www.w3.org/1999/xlink');
+    var cssStyleText = getCSSStyles( svgNode );
+    appendCSS( cssStyleText, svgNode );
+
+    var serializer = new XMLSerializer();
+    var svgString = serializer.serializeToString(svgNode);
+    svgString = svgString.replace(/(\w+)?:?xlink=/g, 'xmlns:xlink='); // Fix root xlink without namespace
+    svgString = svgString.replace(/NS\d+:href/g, 'xlink:href'); // Safari NS namespace fix
+
+    return svgString;
+
+    // Extract CSS styling
+    function getCSSStyles( parentElement ) {
+      var selectorTextArr = [];
+
+      // Add Parent element Id and Classes to the list
+      selectorTextArr.push( '#'+parentElement.id );
+      for (var c = 0; c < parentElement.classList.length; c++) {
+        if ( !contains('.'+parentElement.classList[c], selectorTextArr) ) {
+          selectorTextArr.push( '.'+parentElement.classList[c] );
+        }
+      }
+
+      // Add Children element Ids and Classes to the list
+      var nodes = parentElement.getElementsByTagName("*");
+      for (var i = 0; i < nodes.length; i++) {
+        var id = nodes[i].id;
+        if ( !contains('#'+id, selectorTextArr) ) {
+          selectorTextArr.push( '#'+id );
+        }
+
+        var classes = nodes[i].classList;
+        for (var c = 0; c < classes.length; c++)
+          if ( !contains('.'+classes[c], selectorTextArr) ) {
+            selectorTextArr.push( '.'+classes[c] );
+          }
+      }
+
+      // Extract CSS Rules
+      var extractedCSSText = "";
+      for (var i = 0; i < document.styleSheets.length; i++) {
+        var s = document.styleSheets[i];
+        try {
+          if(!s.cssRules) continue;
+        } catch( e ) {
+          if(e.name !== 'SecurityError') throw e; // for Firefox
+          continue;
+        }
+
+        var cssRules = s.cssRules;
+        for (var r = 0; r < cssRules.length; r++) {
+          if ( contains( cssRules[r].selectorText, selectorTextArr ) ) {
+            extractedCSSText += cssRules[r].cssText;
+          }
+        }
+      }
+
+      return extractedCSSText;
+
+      function contains(str,arr) {
+        return arr.indexOf( str ) === -1 ? false : true;
+      }
+    }
+
+    function appendCSS( cssText, element ) {
+      var styleElement = document.createElement("style");
+      styleElement.setAttribute("type","text/css");
+      styleElement.innerHTML = cssText;
+      var refNode = element.hasChildNodes() ? element.children[0] : null;
+      element.insertBefore( styleElement, refNode );
+    }
+  }
+
+  function svgString2Image( svgString, width, height, format) {//, callback ) {
+    var format = format ? format : 'png';
+
+    var imgsrc = 'data:image/svg+xml;base64,'+ btoa( unescape( encodeURIComponent( svgString ) ) ); // Convert SVG string to data URL
+
+    var canvas = document.createElement("canvas");
+    var context = canvas.getContext("2d");
+
+    canvas.width = width;
+    canvas.height = height;
+
+    var image = new Image();
+    image.onload = function() {
+      context.clearRect ( 0, 0, width, height );
+      context.drawImage(image, 0, 0, width, height);
+
+      canvas.toBlob( function(blob) {
+        saveAs( blob, 'PGS_benchmark.png' );
+        //var filesize = Math.round( blob.length/1024 ) + ' KB';
+        //if ( callback ) callback( blob, filesize );
+      });
+    };
+    image.src = imgsrc;
+  }
