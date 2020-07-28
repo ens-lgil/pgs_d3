@@ -1,4 +1,5 @@
 var svg_id = 'pgs_chart';
+var file_name = 'PGS_benchmark';
 
 class PGSBenchmark {
 
@@ -435,7 +436,7 @@ $( document ).ready(function() {
       doc.setFontSize(12);
       doc.text(5, 10, 'PGS Chart');
       doc.addImage(canvas.toDataURL("image/png"), 'PNG', 10, 10);
-      doc.save('pgs_benchmark.pdf');
+      doc.save(file_name+'.pdf');
     };
     img.setAttribute("src", "data:image/svg+xml;base64," + btoa(svg));
   });
@@ -450,6 +451,18 @@ $( document ).ready(function() {
     /*function save( dataBlob, filesize ){
       saveAs( dataBlob, 'PGS_benchmark.png' ); // FileSaver.js function
     }*/
+  });
+
+  $("#exportSVG").on("click", function() {
+    console.log("Export SVG");
+    var serializer = new XMLSerializer();
+    var svgData = serializer.serializeToString(document.getElementById(svg_id));
+    var svgBlob = new Blob([svgData], {type:"image/svg+xml;charset=utf-8"});
+    var svgUrl = URL.createObjectURL(svgBlob);
+    var downloadLink = document.createElement("a");
+    downloadLink.href = svgUrl;
+    downloadLink.download = file_name+'.svg';
+    downloadLink.click();
   });
 
 });
@@ -530,7 +543,6 @@ $( document ).ready(function() {
   }
 
   function svgString2Image( svgString, width, height, format) {//, callback ) {
-    var format = format ? format : 'png';
 
     var imgsrc = 'data:image/svg+xml;base64,'+ btoa( unescape( encodeURIComponent( svgString ) ) ); // Convert SVG string to data URL
 
@@ -546,7 +558,7 @@ $( document ).ready(function() {
       context.drawImage(image, 0, 0, width, height);
 
       canvas.toBlob( function(blob) {
-        saveAs( blob, 'PGS_benchmark.png' );
+        saveAs( blob, file_name+'.'+format );
         //var filesize = Math.round( blob.length/1024 ) + ' KB';
         //if ( callback ) callback( blob, filesize );
       });
