@@ -1,5 +1,6 @@
 var svg_id = 'pgs_chart';
 var file_name = 'PGS_benchmark';
+var chart_colours = ["#367DB7", "#4CAE49", "#974DA2", "#FF7F00", '#E50000'];
 
 class PGSBenchmark {
 
@@ -26,6 +27,8 @@ class PGSBenchmark {
     this.categoriesNames = chart_data.pgs_ids;
     this.groupNames = chart_data.ancestry;
     this.set_groupNames();
+    this.set_groupNames_colours();
+
 
     // Draw chart
     this.draw_chart();
@@ -65,7 +68,8 @@ class PGSBenchmark {
 
     this.z = d3.scaleOrdinal()
         .domain(this.groupNames)
-        .range(["#367DB7", "#4CAE49", "#974DA2"]);
+        .range(this.get_groupNames_colours());
+        //.range(["#367DB7", "#4CAE49", "#974DA2"]);
 
 
     /* Drawing/updating chart */
@@ -144,15 +148,17 @@ class PGSBenchmark {
 
     var chart_content = this.g.append("g").attr('class', 'chart_content');
 
-    /* Lines */
-
-    var lines = chart_content.selectAll('line.error')
-      .data(selected_data);
-      //.data(chart_data);
-
+    // Use a different variable name to avoid issue within the d3 functions
     var obj = this;
 
+    /* Lines */
+
     if ("eb" in selected_data[0]) {
+
+      var lines = chart_content.selectAll('line.error')
+        .data(selected_data);
+        //.data(chart_data);
+
       // Vertical line
       lines.enter().append('line')
         .attr('class', 'error')
@@ -206,8 +212,9 @@ class PGSBenchmark {
       .attr('cy', function(d) { return obj.y(d.y); });
 
 
+    /* Rectangle area used by tooltip */
     if ("eb" in selected_data[0]) {
-      /* Rectangle area used by tooltip */
+      this.has_lines = true;
       chart_content.selectAll('rect')
         .data(selected_data)
         .enter()
@@ -224,27 +231,32 @@ class PGSBenchmark {
         .attr("fill", "transparent");
     }
     else {
-      /* Rectangle area used by tooltip */
+      this.has_lines = false;
       chart_content.selectAll('rect')
-          .data(selected_data)
-          .enter()
-          .append('rect')
-          .attr('class', function(d) { return 'rect '+d.grpName })
-          .attr("transform",function(d) { return "translate(" + obj.x0(d.pgs) + ",0)"; })
-          .each(function(d,i){
-            addTooltip($(this), d);
-          })
-          .attr("x", function(d) { return obj.x1(d.grpName) - 3; })
-          .attr("y", function(d) { return obj.y(d.y) - 3; })
-          .attr("width", 10)
-          .attr("height", function(d) { return 10; })
-          .attr("fill", "transparent");
+        .data(selected_data)
+        .enter()
+        .append('rect')
+        .attr('class', function(d) { return 'rect '+d.grpName })
+        .attr("transform",function(d) { return "translate(" + obj.x0(d.pgs) + ",0)"; })
+        .each(function(d,i){
+          addTooltip($(this), d);
+        })
+        .attr("x", function(d) { return obj.x1(d.grpName) - 3; })
+        .attr("y", function(d) { return obj.y(d.y) - 3; })
+        .attr("width", 10)
+        .attr("height", function(d) { return 10; })
+        .attr("fill", "transparent");
     }
   }
 
 
   // Draw the legend
   addLegend() {
+
+    var text_x = 30;
+    if (this.has_lines == true) {
+      text_x = 40;
+    }
 
     var legend = this.g.append("g")
       .attr("font-family", "sans-serif")
@@ -256,20 +268,22 @@ class PGSBenchmark {
       .enter().append("g")
       .attr("class", function(d) { return d; } )
       .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+    if (this.has_lines == true) {
+      legend.append("line")
+        .attr("x1", this.chartWidth + 10)
+        .attr("x2", this.chartWidth + 30)
+        .attr("y1", 9.5)
+        .attr("y2", 9.5)
+        .attr("stroke", this.z)
+        .attr("stroke-width", 2);
+    }
     legend.append("circle")
       .attr("r", 4)
       .attr("cx", this.chartWidth + 20)
       .attr("cy", 9.5)
       .attr("fill", this.z);
-    legend.append("line")
-      .attr("x1", this.chartWidth + 10)
-      .attr("x2", this.chartWidth + 30)
-      .attr("y1", 9.5)
-      .attr("y2", 9.5)
-      .attr("stroke", this.z)
-      .attr("stroke-width", 2);
     legend.append("text")
-      .attr("x", this.chartWidth + 40)
+      .attr("x", this.chartWidth + text_x)
       .attr("y", 9.5)
       .attr("dy", "0.32em")
       .attr("text-anchor", "start")
@@ -287,6 +301,27 @@ class PGSBenchmark {
     this.groupNames = gp_list;
   }
 
+  // Set the group colours
+  set_groupNames_colours() {
+    var gp_colours = {};
+    for (var i=0; i<this.groupNames.length; i++) {
+      var gp_name = this.groupNames[i];
+      var colour = chart_colours[i];
+      gp_colours[gp_name] = colour;
+    }
+    this.groupNames_colours = gp_colours;
+  }
+
+  // Get the group colours
+  get_groupNames_colours() {
+    var gp_colours = [];
+    for (var i=0; i<this.groupNames.length; i++) {
+      var gp_name = this.groupNames[i];
+      gp_colours.push(this.groupNames_colours[gp_name]);
+    }
+    return gp_colours;
+  }
+
 
   // This function updates the chart when an ancestry is checked in or out
   update_ancestry(){
@@ -294,7 +329,7 @@ class PGSBenchmark {
     // Reset the list of group names (Ancestry)
     this.set_groupNames();
 
-    // Remove chart content
+    // Remove chart content + legend
     this.svg.selectAll('.chart_content').remove();
     this.svg.selectAll('.chart_legend').remove();
 
@@ -321,7 +356,6 @@ class PGSBenchmark {
       }
 
     });
-    //x1.domain(checked_gp_names);
     x1.domain(checked_gp_names).rangeRound([0, x0.bandwidth()]);*/
   }
 
@@ -332,8 +366,9 @@ class PGSBenchmark {
 
     this.selected_data = this.chart_data["data"][this.metric];
 
-    // Remove chart content
+    // Remove chart content + legend
     this.svg.selectAll('.chart_content').remove();
+    this.svg.selectAll('.chart_legend').remove();
 
     // Redraw Y axis
 
@@ -362,6 +397,8 @@ class PGSBenchmark {
 
     // Load updated set of data to the chart
     this.addData();
+    // Load updated legend on the chart
+    this.addLegend();
   }
 
   get_min_value(){
