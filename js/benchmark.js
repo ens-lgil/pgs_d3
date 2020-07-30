@@ -19,13 +19,15 @@ class PGSBenchmark {
 
     this.chart_data = chart_data;
 
+    this.cohort = $('input[name="cohort"]:checked').val();
+
     this.metric = $("#benchmark_metric_select option:selected").val();
 
-    this.selected_data = chart_data["data"][this.metric];
+    this.selected_data = chart_data["data"][this.cohort][this.metric];
 
     // X categories and groups
-    this.categoriesNames = chart_data.pgs_ids;
-    this.groupNames = chart_data.ancestry;
+    this.categoriesNames = chart_data.pgs_ids[this.cohort];
+    this.groupNames = chart_data.ancestries[this.cohort];
     this.set_groupNames();
     this.set_groupNames_colours();
 
@@ -69,14 +71,12 @@ class PGSBenchmark {
     this.z = d3.scaleOrdinal()
         .domain(this.groupNames)
         .range(this.get_groupNames_colours());
-        //.range(["#367DB7", "#4CAE49", "#974DA2"]);
 
 
     /* Drawing/updating chart */
 
     // Draw Axes
     this.addAxes();
-
 
     // Draw threshold/horizontal line
     this.addHorizontalLine(min_value)
@@ -93,6 +93,7 @@ class PGSBenchmark {
   addAxes() {
     // Axes
     var xAxis = this.g.append('g')
+      .attr("class", "xaxis")
       .attr('transform', 'translate(0,' + this.chartHeight + ')')
       .call( d3.axisBottom(this.x0) );
     var yAxis = this.g.append('g')
@@ -102,6 +103,7 @@ class PGSBenchmark {
 
     // X axis label
     this.svg.append("text")
+      .attr("class", "x_label")
       .attr("transform", "translate(" + (this.chartWidth/2) + " ," + (this.height - 20) + ")")
       .style("text-anchor", "middle")
       .text("PGS Catalog Score ID");
@@ -112,8 +114,6 @@ class PGSBenchmark {
         .attr("transform", "rotate(-90)")
         .attr("y", 10)
         .attr("x", 0 - (this.height / 2))
-        //.attr("y", 0 - margin.left)
-        //.attr("x",0 - (height / 2))
         .attr("dy", "1em")
         .style("text-anchor", "middle")
         .text(this.metric);
@@ -123,16 +123,19 @@ class PGSBenchmark {
 
   // Draw the horizontal line (threshold)
   addHorizontalLine(min_value) {
+    var y_coord = this.chartHeight/2;
     if (min_value < 0) {
-      this.g.append("line")
-        .attr("stroke", 'black')
-        .attr("stroke-width", 1)
-        .style("stroke-dasharray", ("6, 6"))
-        .attr('x1', 0)
-        .attr('x2', this.chartWidth)
-        .attr('y1', this.y(0))
-        .attr('y2', this.y(0));
+      y_coord = this.y(0)
     }
+    this.g.append("line")
+      .attr("class", "hline")
+      .attr("stroke", 'black')
+      .attr("stroke-width", 1)
+      .style("stroke-dasharray", ("6, 6"))
+      .attr('x1', 0)
+      .attr('x2', this.chartWidth)
+      .attr('y1', y_coord)
+      .attr('y2', y_coord);
   }
 
 
@@ -152,12 +155,10 @@ class PGSBenchmark {
     var obj = this;
 
     /* Lines */
-
     if ("eb" in selected_data[0]) {
 
       var lines = chart_content.selectAll('line.error')
         .data(selected_data);
-        //.data(chart_data);
 
       // Vertical line
       lines.enter().append('line')
@@ -197,10 +198,8 @@ class PGSBenchmark {
     }
 
     /* Points */
-
     var points = chart_content.selectAll('circle.point')
       .data(selected_data);
-        //.data(chart_data);
 
     points.enter()
       .append('circle')
@@ -222,7 +221,7 @@ class PGSBenchmark {
         .attr('class', function(d) { return 'rect '+d.grpName })
         .attr("transform",function(d) { return "translate(" + obj.x0(d.pgs) + ",0)"; })
         .each(function(d,i){
-          addTooltip($(this), d);
+          obj.addTooltip($(this), d);
         })
         .attr("x", function(d) { return obj.x1(d.grpName) - 6; })
         .attr("y", function(d) { return obj.y(d.et) - 1; })
@@ -239,7 +238,7 @@ class PGSBenchmark {
         .attr('class', function(d) { return 'rect '+d.grpName })
         .attr("transform",function(d) { return "translate(" + obj.x0(d.pgs) + ",0)"; })
         .each(function(d,i){
-          addTooltip($(this), d);
+          obj.addTooltip($(this), d);
         })
         .attr("x", function(d) { return obj.x1(d.grpName) - 3; })
         .attr("y", function(d) { return obj.y(d.y) - 3; })
@@ -323,9 +322,41 @@ class PGSBenchmark {
   }
 
 
+  // This function updates the chart when an different cohort is selected
+  update_cohort(){
+    // Remove chart content + legend + XY axis + horizontal line
+    this.svg.selectAll('.chart_content').remove();
+    this.svg.selectAll('.chart_legend').remove();
+    this.svg.selectAll('.xaxis').remove();
+    this.svg.selectAll('.yaxis').remove();
+    this.svg.selectAll('.x_label').remove();
+    this.svg.selectAll('.y_label').remove();
+    this.svg.selectAll('.hline').remove();
+
+    this.cohort = $('input[name="cohort"]:checked').val();
+
+    // Refresh the forms
+    fill_ancestry_form(this.chart_data,this.cohort);
+    fill_metric_form(this.chart_data,this.cohort);
+
+
+    // Reset some of the variables
+    this.metric = $("#benchmark_metric_select option:selected").val();
+    this.selected_data = this.chart_data["data"][this.cohort][this.metric];
+
+    // X categories and groups
+    this.categoriesNames = this.chart_data.pgs_ids[this.cohort];
+    this.groupNames = this.chart_data.ancestries[this.cohort];
+    this.set_groupNames();
+    this.set_groupNames_colours();
+
+    // Redraw chart
+    this.draw_chart();
+  }
+
+
   // This function updates the chart when an ancestry is checked in or out
   update_ancestry(){
-
     // Reset the list of group names (Ancestry)
     this.set_groupNames();
 
@@ -359,19 +390,19 @@ class PGSBenchmark {
     x1.domain(checked_gp_names).rangeRound([0, x0.bandwidth()]);*/
   }
 
-  update_yaxis(){
 
+  // This function updates the chart content and Y axis when an different metric is selected
+  update_metric(){
     // Change the performance metric
     this.metric = $("#benchmark_metric_select option:selected").val();
 
-    this.selected_data = this.chart_data["data"][this.metric];
+    this.selected_data = this.chart_data["data"][this.cohort][this.metric];
 
     // Remove chart content + legend
     this.svg.selectAll('.chart_content').remove();
     this.svg.selectAll('.chart_legend').remove();
 
     // Redraw Y axis
-
     var min_value = this.get_min_value();
     var max_value = this.get_max_value();
 
@@ -401,6 +432,7 @@ class PGSBenchmark {
     this.addLegend();
   }
 
+  // Get min value of the selected dataset
   get_min_value(){
     var min_value = d3.min(this.selected_data, function(d) {
       if ("eb" in d) {
@@ -411,14 +443,15 @@ class PGSBenchmark {
       }
     });
     if (min_value > 0) {
-      min_value = 0
+      min_value = min_value - ((min_value/100)*15);
     }
     else {
-      min_value = min_value + ((min_value/100)*10);
+      min_value = min_value + ((min_value/100)*15);
     }
     return min_value;
   }
 
+  // Get max value of the selected dataset
   get_max_value(){
     var max_value = d3.max(this.selected_data, function(d) {
       if ("et" in d) {
@@ -428,30 +461,39 @@ class PGSBenchmark {
         return (d.y);
       }
     });
-    return max_value + ((max_value/100)*10);
+    if (max_value > 0) {
+      max_value = max_value + ((max_value/100)*10);
+    }
+    else {
+      max_value = max_value - ((max_value/100)*10);
+    }
+    return max_value;
+  }
+
+  // Add tooltip on the chart elements
+  addTooltip(elem, data) {
+    var title = "<b>"+data.grpName + "</b>";
+    if (data.et) {
+      title += "<br/>Upper 95: <b>" + data.et + "</b><br/>Estimate: <b>" + data.y + "</b><br/>Lower 95: <b>" + data.eb+"</b>";
+    }
+    else {
+      title += "<br/>Value: <b>" + data.y + "</b>";
+    }
+    elem.tooltip({
+      'title': title,
+      'placement': 'right',
+      'html': true
+    });
   }
 }
 
 
-// Add tooltip on the chart elements
-var addTooltip = function(elem, data) {
-  var title = "<b>"+data.grpName + "</b>";
-  if (data.et) {
-    title += "<br/>Upper 95: <b>" + data.et + "</b><br/>Estimate: <b>" + data.y + "</b><br/>Lower 95: <b>" + data.eb+"</b>";
-  }
-  else {
-    title += "<br/>Value: <b>" + data.y + "</b>";
-  }
-  elem.tooltip({
-    'title': title,
-    'placement': 'right',
-    'html': true
-  });
-}
 
+/*
+ * Export buttons events
+ */
 $( document ).ready(function() {
 
-  //$("#exportPDF").click(() => {
   $("#exportPDF").on("click", function() {
 
     console.log("Export PDF");
@@ -504,101 +546,161 @@ $( document ).ready(function() {
 
 });
 
-  // Below are the functions that handle actual exporting:
-  function getSVGString( svgNode ) {
-    svgNode.setAttribute('xlink', 'http://www.w3.org/1999/xlink');
-    var cssStyleText = getCSSStyles( svgNode );
-    appendCSS( cssStyleText, svgNode );
 
-    var serializer = new XMLSerializer();
-    var svgString = serializer.serializeToString(svgNode);
-    svgString = svgString.replace(/(\w+)?:?xlink=/g, 'xmlns:xlink='); // Fix root xlink without namespace
-    svgString = svgString.replace(/NS\d+:href/g, 'xlink:href'); // Safari NS namespace fix
 
-    return svgString;
+/*
+ * Functions that handle actual exporting into PNG
+ */
+function getSVGString( svgNode ) {
+  svgNode.setAttribute('xlink', 'http://www.w3.org/1999/xlink');
+  var cssStyleText = getCSSStyles( svgNode );
+  appendCSS( cssStyleText, svgNode );
 
-    // Extract CSS styling
-    function getCSSStyles( parentElement ) {
-      var selectorTextArr = [];
+  var serializer = new XMLSerializer();
+  var svgString = serializer.serializeToString(svgNode);
+  svgString = svgString.replace(/(\w+)?:?xlink=/g, 'xmlns:xlink='); // Fix root xlink without namespace
+  svgString = svgString.replace(/NS\d+:href/g, 'xlink:href'); // Safari NS namespace fix
 
-      // Add Parent element Id and Classes to the list
-      selectorTextArr.push( '#'+parentElement.id );
-      for (var c = 0; c < parentElement.classList.length; c++) {
-        if ( !contains('.'+parentElement.classList[c], selectorTextArr) ) {
-          selectorTextArr.push( '.'+parentElement.classList[c] );
-        }
-      }
+  return svgString;
 
-      // Add Children element Ids and Classes to the list
-      var nodes = parentElement.getElementsByTagName("*");
-      for (var i = 0; i < nodes.length; i++) {
-        var id = nodes[i].id;
-        if ( !contains('#'+id, selectorTextArr) ) {
-          selectorTextArr.push( '#'+id );
-        }
+  // Extract CSS styling
+  function getCSSStyles( parentElement ) {
+    var selectorTextArr = [];
 
-        var classes = nodes[i].classList;
-        for (var c = 0; c < classes.length; c++)
-          if ( !contains('.'+classes[c], selectorTextArr) ) {
-            selectorTextArr.push( '.'+classes[c] );
-          }
-      }
-
-      // Extract CSS Rules
-      var extractedCSSText = "";
-      for (var i = 0; i < document.styleSheets.length; i++) {
-        var s = document.styleSheets[i];
-        try {
-          if(!s.cssRules) continue;
-        } catch( e ) {
-          if(e.name !== 'SecurityError') throw e; // for Firefox
-          continue;
-        }
-
-        var cssRules = s.cssRules;
-        for (var r = 0; r < cssRules.length; r++) {
-          if ( contains( cssRules[r].selectorText, selectorTextArr ) ) {
-            extractedCSSText += cssRules[r].cssText;
-          }
-        }
-      }
-
-      return extractedCSSText;
-
-      function contains(str,arr) {
-        return arr.indexOf( str ) === -1 ? false : true;
+    // Add Parent element Id and Classes to the list
+    selectorTextArr.push( '#'+parentElement.id );
+    for (var c = 0; c < parentElement.classList.length; c++) {
+      if ( !contains('.'+parentElement.classList[c], selectorTextArr) ) {
+        selectorTextArr.push( '.'+parentElement.classList[c] );
       }
     }
 
-    function appendCSS( cssText, element ) {
-      var styleElement = document.createElement("style");
-      styleElement.setAttribute("type","text/css");
-      styleElement.innerHTML = cssText;
-      var refNode = element.hasChildNodes() ? element.children[0] : null;
-      element.insertBefore( styleElement, refNode );
+    // Add Children element Ids and Classes to the list
+    var nodes = parentElement.getElementsByTagName("*");
+    for (var i = 0; i < nodes.length; i++) {
+      var id = nodes[i].id;
+      if ( !contains('#'+id, selectorTextArr) ) {
+        selectorTextArr.push( '#'+id );
+      }
+
+      var classes = nodes[i].classList;
+      for (var c = 0; c < classes.length; c++)
+        if ( !contains('.'+classes[c], selectorTextArr) ) {
+          selectorTextArr.push( '.'+classes[c] );
+        }
+    }
+
+    // Extract CSS Rules
+    var extractedCSSText = "";
+    for (var i = 0; i < document.styleSheets.length; i++) {
+      var s = document.styleSheets[i];
+      try {
+        if(!s.cssRules) continue;
+      } catch( e ) {
+        if(e.name !== 'SecurityError') throw e; // for Firefox
+        continue;
+      }
+
+      var cssRules = s.cssRules;
+      for (var r = 0; r < cssRules.length; r++) {
+        if ( contains( cssRules[r].selectorText, selectorTextArr ) ) {
+          extractedCSSText += cssRules[r].cssText;
+        }
+      }
+    }
+
+    return extractedCSSText;
+
+    function contains(str,arr) {
+      return arr.indexOf( str ) === -1 ? false : true;
     }
   }
 
-  function svgString2Image( svgString, width, height, format) {//, callback ) {
-
-    var imgsrc = 'data:image/svg+xml;base64,'+ btoa( unescape( encodeURIComponent( svgString ) ) ); // Convert SVG string to data URL
-
-    var canvas = document.createElement("canvas");
-    var context = canvas.getContext("2d");
-
-    canvas.width = width;
-    canvas.height = height;
-
-    var image = new Image();
-    image.onload = function() {
-      context.clearRect ( 0, 0, width, height );
-      context.drawImage(image, 0, 0, width, height);
-
-      canvas.toBlob( function(blob) {
-        saveAs( blob, file_name+'.'+format );
-        //var filesize = Math.round( blob.length/1024 ) + ' KB';
-        //if ( callback ) callback( blob, filesize );
-      });
-    };
-    image.src = imgsrc;
+  function appendCSS( cssText, element ) {
+    var styleElement = document.createElement("style");
+    styleElement.setAttribute("type","text/css");
+    styleElement.innerHTML = cssText;
+    var refNode = element.hasChildNodes() ? element.children[0] : null;
+    element.insertBefore( styleElement, refNode );
   }
+}
+
+function svgString2Image( svgString, width, height, format) {//, callback ) {
+
+  var imgsrc = 'data:image/svg+xml;base64,'+ btoa( unescape( encodeURIComponent( svgString ) ) ); // Convert SVG string to data URL
+
+  var canvas = document.createElement("canvas");
+  var context = canvas.getContext("2d");
+
+  canvas.width = width;
+  canvas.height = height;
+
+  var image = new Image();
+  image.onload = function() {
+    context.clearRect ( 0, 0, width, height );
+    context.drawImage(image, 0, 0, width, height);
+
+    canvas.toBlob( function(blob) {
+      saveAs( blob, file_name+'.'+format );
+      //var filesize = Math.round( blob.length/1024 ) + ' KB';
+      //if ( callback ) callback( blob, filesize );
+    });
+  };
+  image.src = imgsrc;
+}
+
+
+
+/*
+ * Functions to fill the forms:
+ * Cohort, Ancestry, Metric
+ */
+function fill_cohort_form(data) {
+  var default_cohort = '';
+  var cohorts_html_rb = '';
+  for (var i=0; i<data.cohorts.length;i++) {
+    var id = 'cohort_'+i;
+    var is_checked = '';
+    var cohort = data.cohorts[i];
+    if (i == 0) {
+      is_checked = 'checked ';
+      default_cohort = cohort;
+    }
+    cohorts_html_rb += '<div>'+
+                       '  <input type="radio" '+is_checked+'id="'+id+'" name="cohort" value="'+cohort+'">'+
+                       '  <label class="mb-0" for="'+id+'"> '+cohort+'</label>'+
+                       '</div>';
+  }
+  $("#benchmark_cohort_list").append(cohorts_html_rb);
+  return default_cohort;
+}
+
+function fill_ancestry_form(data, cohort) {
+  $("#benchmark_ancestry_list").html('');
+  // Ancestry
+  var ancestry_html_cb = '';
+  var ancestry_length = data.ancestries[cohort].length;
+  for (var i=0; i<ancestry_length;i++) {
+    id = 'gpName_'+i;
+    var ancestry = data.ancestries[cohort][i];
+    var is_disabled = '';
+    if (ancestry_length == 1) {
+      is_disabled = ' disabled';
+    }
+    ancestry_html_cb += '<div>'+
+                        '  <input type="checkbox" class="benchmark_ancestry_cb" checked'+is_disabled+' value="'+ancestry+'" id="'+id+'">'+
+                        '  <label class="mb-0" for="'+id+'"> '+ancestry+'</label>'+
+                        '</div>';
+  }
+  $("#benchmark_ancestry_list").append(ancestry_html_cb);
+}
+
+function fill_metric_form(data, cohort) {
+  $("#benchmark_metric_select").html('');
+  metrics = Object.keys(data.data[cohort]);
+  for (var i=0; i<metrics.length;i++) {
+    metric = metrics[i];
+    var option = new Option(metric, metric);
+    $("#benchmark_metric_select").append(option);
+  }
+}
