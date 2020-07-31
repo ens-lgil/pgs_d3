@@ -24,17 +24,14 @@ class PGSBenchmark {
 
     this.chart_data = chart_data;
 
-    //this.cohort = $('input[name="cohort"]:checked').val();
     this.cohorts = set_cohorts_list();
     this.set_cohort_data_shapes();
 
     this.metric = $("#benchmark_metric_select option:selected").val();
 
-    //this.selected_data = chart_data["data"][this.cohort][this.metric];
     this.set_selected_data();
 
     // X categories
-    //this.categoriesNames = chart_data.pgs_ids[this.cohort];
     this.set_category_names();
     // Groups (ancestries)
     this.groupNames = set_groupNames();
@@ -431,6 +428,10 @@ class PGSBenchmark {
 
   // This function updates the chart when an different cohort is selected
   update_cohort(){
+
+    // Fetch selection of cohorts
+    this.cohorts = set_cohorts_list();
+
     // Remove chart content + legend + XY axis + horizontal line
     this.svg.selectAll('.chart_content').remove();
     this.svg.selectAll('.chart_legend').remove();
@@ -439,8 +440,6 @@ class PGSBenchmark {
     this.svg.selectAll('.x_label').remove();
     this.svg.selectAll('.y_label').remove();
     this.svg.selectAll('.hline').remove();
-
-    this.cohorts = set_cohorts_list();
 
     // Refresh the forms
     fill_ancestry_form(this.chart_data, this.cohorts);

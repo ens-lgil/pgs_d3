@@ -218,12 +218,26 @@
 
         var benchmark = new PGSBenchmark(pgs_data,width,height);
 
-        $('#benchmark_cohort_list').on("change",function() {
+        $("#benchmark_cohort_list").on("change", ".benchmark_cohort_cb", function() {
+          // Prevent having only unchecked checkboxes
+          if ($(".benchmark_cohort_cb:checked").length == 0 && !$(this).prop('checked')) {
+            $(this).prop("checked", true);
+          }
+          else {
             benchmark.update_cohort();
+          }
         });
-        $("#benchmark_ancestry_list").on("change",function() {
+
+        $("#benchmark_ancestry_list").on("change", ".benchmark_ancestry_cb",function() {
+          // Prevent having only unchecked checkboxes
+          if ($(".benchmark_ancestry_cb:checked").length == 0 && !$(this).prop('checked')) {
+            $(this).prop("checked", true);
+          }
+          else {
             benchmark.update_ancestry();
+          }
         });
+        
         $("#benchmark_metric_select").change(function() {
           benchmark.update_metric();
         });
