@@ -168,7 +168,7 @@
                 { pgs: 'PGS000148', grpName:'European', y: 0.276220866, eb: 0.249458753, et: 0.302982979 },
                 { pgs: 'PGS000149', grpName:'European', y: 0.249760526, eb: 0.222933579, et: 0.276587474 }
               ],
-              "OR":
+            "OR":
               [
                 { pgs: 'PGS000055', grpName:'European', y: 0.324198219, eb: 0.296680808, et: 0.35171563 },
                 { pgs: 'PGS000074', grpName:'European', y: 0.299848205, eb: 0.272997429, et: 0.326698981 },
@@ -177,7 +177,7 @@
                 { pgs: 'PGS000148', grpName:'European', y: 0.278911504, eb: 0.251822021, et: 0.306000987 },
                 { pgs: 'PGS000149', grpName:'European', y: 0.25226752, eb: 0.225135951, et: 0.27939909 }
               ],
-              "AUROC":
+            "AUROC":
               [
                 { pgs: 'PGS000055', grpName:'European', y: 0.701947497 },
                 { pgs: 'PGS000074', grpName:'European', y: 0.699750142 },
@@ -207,13 +207,14 @@
       $( document ).ready(function() {
 
         // Cohorts
-        var default_cohort = fill_cohort_form(pgs_data);
+        fill_cohort_form(pgs_data);
+        var cohorts = set_cohorts_list();
 
         // Ancestry
-        fill_ancestry_form(pgs_data,default_cohort);
+        fill_ancestry_form(pgs_data,cohorts);
 
         // Performance metric
-        fill_metric_form(pgs_data,default_cohort);
+        fill_metric_form(pgs_data,cohorts);
 
         var benchmark = new PGSBenchmark(pgs_data,width,height);
 
