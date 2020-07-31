@@ -1,22 +1,10 @@
 var svg_id = 'pgs_chart';
 var sep = '__';
 var file_name = 'PGS_benchmark';
+// Colours to differenciate the ancestries
 var chart_colours = ["#367DB7", "#4CAE49", "#974DA2", "#FF7F00", '#E50000'];
-
-// Do something with the symbols, with a way to use it as a parameter in the point drawings,
-// including the legend.
+// Point symbols to differenciate the cohorts
 var chart_shapes = [ d3.symbolCircle, d3.symbolDiamond, d3.symbolTriangle, d3.symbolSquare, d3.symbolCross];
-
-var symbolCircle = d3.symbol()
-  .type(d3.symbolCircle)
-  .size(60);
-var pathCircle = symbolCircle();
-
-var symbolDiamond = d3.symbol()
-  .type(d3.symbolDiamond)
-  .size(60);
-var pathDiamond = symbolDiamond();
-
 
 
 class PGSBenchmark {
@@ -54,6 +42,7 @@ class PGSBenchmark {
 
     // X axis groups (ancestries)
     this.set_cohortGroupNames();
+    this.set_cohortGroupNames_colours();
 
     // Draw chart
     this.draw_chart();
@@ -366,16 +355,6 @@ class PGSBenchmark {
     this.groupNames_colours = gp_colours;
   }
 
-  // Get the group colours
-  get_groupNames_colours() {
-    var gp_colours = [];
-    for (var i=0; i<this.groupNames.length; i++) {
-      var gp_name = this.groupNames[i];
-      gp_colours.push(this.groupNames_colours[gp_name]);
-    }
-    return gp_colours;
-  }
-
 
   // Get the cohort groups
   set_cohortGroupNames() {
@@ -393,7 +372,7 @@ class PGSBenchmark {
       }
     }
     this.cohortGroupNames = cohort_gp_list;
-    this.set_cohortGroupNames_colours();
+    //this.set_cohortGroupNames_colours();
     this.set_cohortGroupNames_data_shapes();
   }
 
@@ -480,7 +459,8 @@ class PGSBenchmark {
     this.groupNames = set_groupNames();
     console.log('groupNames:');
     console.log(this.groupNames);
-    this.set_groupNames_colours();
+    //this.set_groupNames_colours();
+    console.log('----');
 
     // X axis groups (ancestries)
     this.set_cohortGroupNames();
@@ -500,30 +480,16 @@ class PGSBenchmark {
     this.svg.selectAll('.chart_content').remove();
     this.svg.selectAll('.chart_legend').remove();
 
+    // Reset some of the coordinates
     this.x1.domain(this.cohortGroupNames).rangeRound([0, this.x0.bandwidth()]);
+    this.z = d3.scaleOrdinal()
+        .domain(this.cohortGroupNames)
+        .range(this.get_cohortGroupNames_colours());
+
     // Load updated set of data to the chart
     this.addData();
     // Load updated legend on the chart
     this.addLegend();
-
-    /*d3.selectAll(".benchmark_ancestry_cb").each(function(d){
-      cb = d3.select(this);
-      grp = cb.property("value");
-
-      // If the box is check, I show the group
-      if(cb.property("checked")){
-        //console.log(grp+": checked");
-        checked_gp_names.push(grp);
-        svg.selectAll("."+grp).transition().duration(200).style("opacity", 1);
-        svg.selectAll("."+grp).style("display", 'block');
-      // Otherwise I hide it
-      } else{
-        svg.selectAll("."+grp).transition().duration(200).style("opacity", 0);
-        svg.selectAll("."+grp).style("display", 'none');
-      }
-
-    });
-    x1.domain(checked_gp_names).rangeRound([0, x0.bandwidth()]);*/
   }
 
 
@@ -659,10 +625,7 @@ $( document ).ready(function() {
     canvas.height = svgSize.height.baseVal.value;
 
     let ctx = canvas.getContext("2d");
-    let doc = new jsPDF({
-      orientation: 'l',
-      unit: 'px'
-    });
+    let doc = new jsPDF({ orientation: 'l', unit: 'px' });
     let img = document.createElement("img");
     img.onload = () => {
       ctx.drawImage(img, 0, 0);
@@ -738,10 +701,11 @@ function getSVGString( svgNode ) {
       }
 
       var classes = nodes[i].classList;
-      for (var c = 0; c < classes.length; c++)
+      for (var c = 0; c < classes.length; c++) {
         if ( !contains('.'+classes[c], selectorTextArr) ) {
           selectorTextArr.push( '.'+classes[c] );
         }
+      }
     }
 
     // Extract CSS Rules
@@ -762,7 +726,6 @@ function getSVGString( svgNode ) {
         }
       }
     }
-
     return extractedCSSText;
 
     function contains(str,arr) {
@@ -829,7 +792,13 @@ function fill_cohort_form(data) {
 }
 
 function fill_ancestry_form(data, cohorts) {
-  //console.log(cohorts);
+  var previous_unselected = [];
+  $(".benchmark_ancestry_cb").each(function () {
+    if ($(this).prop("checked") == false)  {
+      previous_unselected.push($(this).val());
+    }
+  });
+
   $("#benchmark_ancestry_list").html('');
   var ancestry_list = [];
   var html_cb = '';
@@ -849,12 +818,16 @@ function fill_ancestry_form(data, cohorts) {
   for (var k=0; k<ancestry_list.length;k++) {
     id = 'gpName_'+k;
     var ancestry = ancestry_list[k];
+    var is_checked = ' checked';
+    if (previous_unselected.includes(ancestry)) {
+      is_checked = '';
+    }
     var is_disabled = '';
     if (ancestry_list.length == 1) {
       is_disabled = ' disabled';
     }
     html_cb += '<div>'+
-               '  <input type="checkbox" class="benchmark_ancestry_cb" checked'+is_disabled+' value="'+ancestry+'" id="'+id+'">'+
+               '  <input type="checkbox" class="benchmark_ancestry_cb"'+is_checked+is_disabled+' value="'+ancestry+'" id="'+id+'">'+
                '  <label class="mb-0" for="'+id+'"> '+ancestry+'</label>'+
                '</div>';
   }
@@ -862,9 +835,12 @@ function fill_ancestry_form(data, cohorts) {
 }
 
 function fill_metric_form(data, cohorts) {
+
+  var previous_selection = $("#benchmark_metric_select option:selected").val();
+
   $("#benchmark_metric_select").html('');
   var metrics_list = [];
-  // Cohorts
+  // Cohorts - fetch metrics
   for (var i=0; i<cohorts.length;i++) {
     var cohort = cohorts[i];
     var metrics = Object.keys(data.data[cohort]);
@@ -875,9 +851,13 @@ function fill_metric_form(data, cohorts) {
       }
     }
   }
+  // Fill the form
   for (var k=0; k<metrics_list.length;k++) {
     var metric = metrics_list[k];
     var option = new Option(metric, metric);
+    if (previous_selection && metric == previous_selection) {
+      option = new Option(metric, metric, true, true);
+    }
     $("#benchmark_metric_select").append(option);
   }
 }
