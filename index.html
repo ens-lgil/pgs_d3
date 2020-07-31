@@ -33,6 +33,9 @@
       .tooltip {
         font: 12px;
       }
+      .tooltip_area:hover {
+        cursor:pointer;
+      }
     </style>
   </head>
 
@@ -237,7 +240,7 @@
             benchmark.update_ancestry();
           }
         });
-        
+
         $("#benchmark_metric_select").change(function() {
           benchmark.update_metric();
         });

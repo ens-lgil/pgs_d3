@@ -58,8 +58,8 @@ class PGSBenchmark {
     console.log(this.groupNames);
     console.log(this.cohortGroupNames);
 
-    var min_value = this.get_min_value();
-    var max_value = this.get_max_value();
+    // Setup the min/max for the Y scale
+    this.get_min_max_values();
 
     // The scale spacing the groups:
     this.x0 = d3.scaleBand()
@@ -75,7 +75,7 @@ class PGSBenchmark {
         .padding(1);
 
     this.y = d3.scaleLinear()
-        .domain([min_value, max_value])
+        .domain([this.min_value, this.max_value])
         .rangeRound([this.chartHeight, 0]);
 
     this.z = d3.scaleOrdinal()
@@ -89,7 +89,7 @@ class PGSBenchmark {
     this.addAxes();
 
     // Draw threshold/horizontal line
-    this.addHorizontalLine(min_value)
+    this.addHorizontalLine(this.min_value)
 
     // Load data in the chart
     this.addData();
@@ -242,7 +242,7 @@ class PGSBenchmark {
           .data(global_selected_data)
           .enter()
           .append('rect')
-          .attr('class', function(d) { return 'rect '+d.grpName })
+          .attr('class', function(d) { return 'rect tooltip_area '+d.grpName })
           .attr("transform",function(d) { return "translate(" + obj.x0(d.pgs) + ",0)"; })
           .each(function(d,i){
             obj.addTooltip($(this), d);
@@ -259,7 +259,7 @@ class PGSBenchmark {
           .data(global_selected_data)
           .enter()
           .append('rect')
-          .attr('class', function(d) { return 'rect '+d.grpName })
+          .attr('class', function(d) { return 'rect tooltip_area '+d.grpName })
           .attr("transform",function(d) { return "translate(" + obj.x0(d.pgs) + ",0)"; })
           .each(function(d,i){
             obj.addTooltip($(this), d);
@@ -505,11 +505,11 @@ class PGSBenchmark {
     this.svg.selectAll('.chart_legend').remove();
 
     // Redraw Y axis
-    var min_value = this.get_min_value();
-    var max_value = this.get_max_value();
+    // Setup the min/max for the Y scale
+    this.get_min_max_values();
 
     this.y = d3.scaleLinear()
-        .domain([min_value, max_value])
+        .domain([this.min_value, this.max_value])
         .rangeRound([this.chartHeight, 0]);
 
     this.svg.select(".yaxis")
@@ -534,12 +534,16 @@ class PGSBenchmark {
     this.addLegend();
   }
 
-  // Get min value of the selected dataset
-  get_min_value(){
+  // Get min and max values of the selected dataset
+  get_min_max_values() {
     var min_value = '';
+    var max_value = '';
+
     var cohorts = Object.keys(this.selected_data);
     for (var i=0;i<cohorts.length;i++) {
       var cohort = cohorts[i];
+
+      // Min value
       var cohort_min_value = d3.min(this.selected_data[cohort], function(d) {
         if ("eb" in d) {
           return (d.eb);
@@ -548,26 +552,11 @@ class PGSBenchmark {
           return (d.y);
         }
       });
-      console.log(cohort+" min_value: "+cohort_min_value);
       if (min_value == '' || min_value > cohort_min_value) {
         min_value = cohort_min_value;
       }
-    }
-    if (min_value > 0) {
-      min_value = min_value - ((min_value/100)*15);
-    }
-    else {
-      min_value = min_value + ((min_value/100)*15);
-    }
-    return min_value;
-  }
 
-  // Get max value of the selected dataset
-  get_max_value(){
-    var max_value = '';
-    var cohorts = Object.keys(this.selected_data);
-    for (var i=0;i<cohorts.length;i++) {
-      var cohort = cohorts[i];
+      // Max value
       var cohort_max_value = d3.max(this.selected_data[cohort], function(d) {
         if ("et" in d) {
           return (d.et);
@@ -580,13 +569,13 @@ class PGSBenchmark {
         max_value = cohort_max_value;
       }
     }
-    if (max_value > 0) {
-      max_value = max_value + ((max_value/100)*10);
-    }
-    else {
-      max_value = max_value - ((max_value/100)*10);
-    }
-    return max_value;
+    var interval = Math.abs(max_value - min_value);
+    var interval_extra = (interval/100)*5;
+
+    // Min value
+    this.min_value = min_value - interval_extra;
+    // Max value
+    this.max_value = max_value + interval_extra;
   }
 
   // Add tooltip on the chart elements
