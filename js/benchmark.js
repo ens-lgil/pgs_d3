@@ -1,16 +1,20 @@
 var svg_id = 'pgs_chart';
 var sep = '__';
 var file_name = 'PGS_benchmark';
+// X axis label
+var chart_xaxis_label = 'PGS Catalog - Score ID';
 // Colours to differenciate the ancestries
 var chart_colours = ["#367DB7", "#4CAE49", "#974DA2", "#FF7F00", '#E50000'];
-// Point symbols to differenciate the cohorts
-var chart_shapes = [ d3.symbolCircle, d3.symbolDiamond, d3.symbolTriangle, d3.symbolSquare, d3.symbolCross];
+// Point symbols/shapes to differenciate the cohorts data
+var chart_shapes = [ d3.symbolCircle, d3.symbolTriangle, d3.symbolDiamond, d3.symbolSquare, d3.symbolCross];
 
 
+/*
+ * Main class to build the 'PGS Benchmark' chart
+ */
 class PGSBenchmark {
 
   constructor(chart_data,width,height) {
-
     // SVG space
     this.svg = d3.select('svg').attr('width', width).attr('height', height);
 
@@ -27,12 +31,17 @@ class PGSBenchmark {
     this.cohorts = set_cohorts_list();
     this.set_cohort_data_shapes();
 
-    this.metric = $("#benchmark_metric_select option:selected").val();
+    // Fetch the selected performance metric
+    this.set_metric();
+    // Fetch the selected sex type
+    this.set_sex_type();
 
+    // Get the data corresponding to the filters selection
     this.set_selected_data();
 
-    // X categories
+    // X axis categories
     this.set_category_names();
+
     // Groups (ancestries)
     this.groupNames = set_groupNames();
     this.set_groupNames_colours();
@@ -48,7 +57,6 @@ class PGSBenchmark {
 
   // Draw the different components of the chart
   draw_chart() {
-
     // Define the div for the tooltip
     var div = d3.select("body").append("div")
         .attr("class", "tooltip")
@@ -82,7 +90,6 @@ class PGSBenchmark {
         .domain(this.cohortGroupNames)
         .range(this.get_cohortGroupNames_colours());
 
-
     /* Drawing/updating chart */
 
     // Draw Axes
@@ -101,33 +108,31 @@ class PGSBenchmark {
 
   // Draw the chart axes
   addAxes() {
-    // Axes
+    // X axis
     var xAxis = this.g.append('g')
       .attr("class", "xaxis")
       .attr('transform', 'translate(0,' + this.chartHeight + ')')
       .call( d3.axisBottom(this.x0) );
-    var yAxis = this.g.append('g')
-      .attr("class", "yaxis")
-      .call( d3.axisLeft(this.y) );
-
-
-    // X axis label
+    // X axis - label
     this.svg.append("text")
       .attr("class", "x_label")
       .attr("transform", "translate(" + (this.chartWidth/2) + " ," + (this.height - 20) + ")")
       .style("text-anchor", "middle")
-      .text("PGS Catalog Score ID");
+      .text(chart_xaxis_label);
 
-    // Y axis label
+    // Y axis
+    var yAxis = this.g.append('g')
+      .attr("class", "yaxis")
+      .call( d3.axisLeft(this.y) );
+    // Y axis - label
     this.svg.append("text")
-        .attr("class", "y_label")
-        .attr("transform", "rotate(-90)")
-        .attr("y", 10)
-        .attr("x", 0 - (this.height / 2))
-        .attr("dy", "1em")
-        .style("text-anchor", "middle")
-        .text(this.metric);
-
+      .attr("class", "y_label")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 10)
+      .attr("x", 0 - (this.height / 2))
+      .attr("dy", "1em")
+      .style("text-anchor", "middle")
+      .text(this.metric);
   }
 
 
@@ -151,7 +156,6 @@ class PGSBenchmark {
 
   // Draw the chart content
   addData() {
-
     // Chart container
     var chart_content = this.g.append("g").attr('class', 'chart_content');
 
@@ -172,49 +176,50 @@ class PGSBenchmark {
       }
     }
 
-      /* Lines */
-      if ("eb" in global_selected_data[0]) {
+    /* Lines */
+    if ("eb" in global_selected_data[0]) {
 
-        var lines = chart_content.selectAll('line.error')
-          .data(global_selected_data);
+      var lines = chart_content.selectAll('line.error')
+        .data(global_selected_data);
 
-        // Vertical line
-        lines.enter().append('line')
-          .attr('class', 'error')
-          .attr('class', function(d) { return 'error '+d.grpName })
-          .attr("stroke", function(d) { return obj.z(d.cohortGrpName); })
-          .attr("stroke-width", 2)
-        //.merge(lines)
-          .attr('x1', function(d) { return obj.x1(d.cohortGrpName); })
-          .attr('x2', function(d) { return obj.x1(d.cohortGrpName); })
-          .attr('y1', function(d) { return obj.y(d.et); })
-          .attr('y2', function(d) { return obj.y(d.eb); });
-        // Horizontal line - top
-        lines.enter().append('line')
-          .attr('class', function(d) { return 'error '+d.grpName })
-          .attr("stroke", function(d) { return obj.z(d.cohortGrpName); })
-          .attr("stroke-width", 2)
-        //.merge(lines)
-          .attr('x1', function(d) { return obj.x1(d.cohortGrpName)-5; })
-          .attr('x2', function(d) { return obj.x1(d.cohortGrpName)+5; })
-          .attr('y1', function(d) { return obj.y(d.et); })
-          .attr('y2', function(d) { return obj.y(d.et); });
-        // Horizontal line - bottom
-        lines.enter().append('line')
-          .attr('class', function(d) { return 'error '+d.grpName })
-          .attr("stroke", function(d) { return obj.z(d.cohortGrpName); })
-          .attr("stroke-width", 2)
-        //.merge(lines)
-          .attr('x1', function(d) { return obj.x1(d.cohortGrpName)-5; })
-          .attr('x2', function(d) { return obj.x1(d.cohortGrpName)+5; })
-          .attr('y1', function(d) { return obj.y(d.eb); })
-          .attr('y2', function(d) { return obj.y(d.eb); });
+      // Vertical line
+      lines.enter().append('line')
+        .attr('class', 'error')
+        .attr('class', function(d) { return 'error '+d.grpName })
+        .attr("stroke", function(d) { return obj.z(d.cohortGrpName); })
+        .attr("stroke-width", 2)
+      //.merge(lines)
+        .attr('x1', function(d) { return obj.x1(d.cohortGrpName); })
+        .attr('x2', function(d) { return obj.x1(d.cohortGrpName); })
+        .attr('y1', function(d) { return obj.y(d.et); })
+        .attr('y2', function(d) { return obj.y(d.eb); });
+      // Horizontal line - top
+      lines.enter().append('line')
+        .attr('class', function(d) { return 'error '+d.grpName })
+        .attr("stroke", function(d) { return obj.z(d.cohortGrpName); })
+        .attr("stroke-width", 2)
+      //.merge(lines)
+        .attr('x1', function(d) { return obj.x1(d.cohortGrpName)-5; })
+        .attr('x2', function(d) { return obj.x1(d.cohortGrpName)+5; })
+        .attr('y1', function(d) { return obj.y(d.et); })
+        .attr('y2', function(d) { return obj.y(d.et); });
+      // Horizontal line - bottom
+      lines.enter().append('line')
+        .attr('class', function(d) { return 'error '+d.grpName })
+        .attr("stroke", function(d) { return obj.z(d.cohortGrpName); })
+        .attr("stroke-width", 2)
+      //.merge(lines)
+        .attr('x1', function(d) { return obj.x1(d.cohortGrpName)-5; })
+        .attr('x2', function(d) { return obj.x1(d.cohortGrpName)+5; })
+        .attr('y1', function(d) { return obj.y(d.eb); })
+        .attr('y2', function(d) { return obj.y(d.eb); });
 
-        chart_content.selectAll('line.error')
-          //.transition()
-          .attr("transform",function(d) { return "translate(" + obj.x0(d.pgs) + ",0)"; });
-      }
+      chart_content.selectAll('line.error')
+        //.transition()
+        .attr("transform",function(d) { return "translate(" + obj.x0(d.pgs) + ",0)"; });
+    }
 
+    /* Data points */
     for (var i=0;i<cohorts.length;i++) {
       var cohort = cohorts[i];
       var selected_data = [];
@@ -224,8 +229,8 @@ class PGSBenchmark {
         }
       }
 
-      /* Data points */
-      var points = chart_content.selectAll('star.point')
+      // Data points - each cohort has its point shape
+      var points = chart_content.selectAll('data.point')
         .data(selected_data);
       points.enter()
         .append('path')
@@ -275,7 +280,6 @@ class PGSBenchmark {
 
   // Draw the legend
   addLegend() {
-
     var obj = this;
 
     var text_x = 30;
@@ -293,6 +297,7 @@ class PGSBenchmark {
       .enter().append("g")
       .attr("class", function(d) { return d; } )
       .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+    // Legend with line
     if (this.has_lines == true) {
       legend.append("line")
         .attr("x1", this.chartWidth + 10)
@@ -302,6 +307,7 @@ class PGSBenchmark {
         .attr("stroke", this.z)
         .attr("stroke-width", 2);
     }
+    // Legend point with its corresponding shape
     legend.append('path')
       .attr("transform", function(d, i) { return "translate(" + (obj.chartWidth + 20) +",9.5)"; })
       .attr("fill", this.z)
@@ -318,6 +324,31 @@ class PGSBenchmark {
         return text[1]+" ("+text[0]+")";
       });
   }
+
+
+
+  // Get the cohort groups
+  set_cohortGroupNames() {
+    var cohort_gp_list = [];
+    var cohorts = Object.keys(this.selected_data);
+    for (var i=0;i<cohorts.length;i++) {
+      var cohort = cohorts[i];
+      var ancestry_list = this.chart_data.ancestries[cohort];
+      // Ancestries
+      for (var j=0; j<ancestry_list.length;j++) {
+        var ancestry = ancestry_list[j];
+        if (this.groupNames.includes(ancestry)) {
+          cohort_gp_list.push(cohort+sep+ancestry);
+        }
+      }
+    }
+    this.cohortGroupNames = cohort_gp_list;
+    //this.set_cohortGroupNames_colours();
+    this.set_cohortGroupNames_data_shapes();
+  }
+
+
+  /* Assign data point shapes ('path' in D3) */
 
   // Get D3 data point path
   get_point_path(symbol){
@@ -341,6 +372,8 @@ class PGSBenchmark {
   }
 
 
+  /* Assign the group/ancestry colours */
+
   // Set the group colours
   set_groupNames_colours() {
     var gp_colours = {};
@@ -351,28 +384,6 @@ class PGSBenchmark {
     }
     this.groupNames_colours = gp_colours;
   }
-
-
-  // Get the cohort groups
-  set_cohortGroupNames() {
-    var cohort_gp_list = [];
-    var cohorts = Object.keys(this.selected_data);
-    for (var i=0;i<cohorts.length;i++) {
-      var cohort = cohorts[i];
-      var ancestry_list = this.chart_data.ancestries[cohort];
-      // Ancestries
-      for (var j=0; j<ancestry_list.length;j++) {
-        var ancestry = ancestry_list[j];
-        if (this.groupNames.includes(ancestry)) {
-          cohort_gp_list.push(cohort+sep+ancestry);
-        }
-      }
-    }
-    this.cohortGroupNames = cohort_gp_list;
-    //this.set_cohortGroupNames_colours();
-    this.set_cohortGroupNames_data_shapes();
-  }
-
   // Set the cohort group colours
   set_cohortGroupNames_colours() {
     this.cohortGroupNames_colours = {};
@@ -383,7 +394,6 @@ class PGSBenchmark {
       this.cohortGroupNames_colours[cohort_gp_name] = this.groupNames_colours[gp_name];
     }
   }
-
   // Get the cohort group colours
   get_cohortGroupNames_colours() {
     var gp_colours = [];
@@ -395,19 +405,23 @@ class PGSBenchmark {
   }
 
 
-  // Set the list of selected cohorts
+  // Fetch the data of the selected cohorts
   set_selected_data() {
     this.selected_data = {};
     for (var i=0; i<this.cohorts.length; i++) {
       var cohort = this.cohorts[i];
       var metrics = Object.keys(this.chart_data["data"][cohort]);
       if (metrics.includes(this.metric)) {
-        var data = this.chart_data["data"][cohort][this.metric];
-        this.selected_data[cohort] = data;
+        var sexes = Object.keys(this.chart_data["data"][cohort][this.metric]);
+        if (sexes.includes(this.sex_type)) {
+          var data = this.chart_data["data"][cohort][this.metric][this.sex_type];
+          this.selected_data[cohort] = data;
+        }
       }
     }
   }
 
+  // Define the categories for the X axis
   set_category_names() {
     var cat_list = [];
     // Cohorts
@@ -426,9 +440,19 @@ class PGSBenchmark {
     this.categoriesNames = cat_list;
   }
 
-  // This function updates the chart when an different cohort is selected
-  update_cohort(){
+  // Fetch the selected performance metric
+  set_metric() {
+    this.metric = $("#benchmark_metric_select option:selected").val();
+  }
 
+  // Fetch the selected sex type
+  set_sex_type() {
+    this.sex_type = $('input[name="benchmark_sex_type"]:checked').val();
+  }
+
+
+  // This function updates the chart when an different cohort is selected
+  update_cohort() {
     // Fetch selection of cohorts
     this.cohorts = set_cohorts_list();
 
@@ -444,22 +468,18 @@ class PGSBenchmark {
     // Refresh the forms
     fill_ancestry_form(this.chart_data, this.cohorts);
     fill_metric_form(this.chart_data, this.cohorts);
+    fill_sex_form(this.chart_data, this.cohorts);
 
     // Reset some of the variables
-    this.metric = $("#benchmark_metric_select option:selected").val();
+    this.set_metric();
+    this.set_sex_type();
     this.set_selected_data();
 
-    console.log('cohorts:');
-    console.log(Object.keys(this.selected_data));
-    // X categories
-    //this.categoriesNames = chart_data.pgs_ids[this.cohort];
+    // X axis categories
     this.set_category_names();
+
     // Groups (ancestries)
     this.groupNames = set_groupNames();
-    console.log('groupNames:');
-    console.log(this.groupNames);
-    //this.set_groupNames_colours();
-    console.log('----');
 
     // X axis groups (ancestries)
     this.set_cohortGroupNames();
@@ -470,7 +490,7 @@ class PGSBenchmark {
 
 
   // This function updates the chart when an ancestry is checked in or out
-  update_ancestry(){
+  update_ancestry() {
     // Reset the list of group names (Ancestry)
     this.groupNames = set_groupNames();
     this.set_cohortGroupNames();
@@ -492,10 +512,14 @@ class PGSBenchmark {
   }
 
 
-  // This function updates the chart content and Y axis when an different metric is selected
-  update_metric(){
-    // Change the performance metric
-    this.metric = $("#benchmark_metric_select option:selected").val();
+  // This function updates the chart content and Y axis when a different metric is selected
+  update_metric() {
+    // Change the selected performance metric
+    this.set_metric();
+
+    // Change the sex type
+    fill_sex_form(this.chart_data, this.cohorts);
+    this.set_sex_type();
 
     this.set_selected_data();
     this.set_cohortGroupNames();
@@ -534,6 +558,38 @@ class PGSBenchmark {
     this.addLegend();
   }
 
+
+  // This function updates the chart content and Y axis when a different sex is selected
+  update_sex() {
+    // Change the selected sex type
+    this.set_sex_type();
+
+    this.set_selected_data();
+    this.set_cohortGroupNames();
+
+    // Remove chart content + legend
+    this.svg.selectAll('.chart_content').remove();
+    this.svg.selectAll('.chart_legend').remove();
+
+    // Redraw Y axis
+    // Setup the min/max for the Y scale
+    this.get_min_max_values();
+
+    this.y = d3.scaleLinear()
+        .domain([this.min_value, this.max_value])
+        .rangeRound([this.chartHeight, 0]);
+
+    this.svg.select(".yaxis")
+      .transition().duration(800)
+      .call( d3.axisLeft(this.y) );
+
+    // Load updated set of data to the chart
+    this.addData();
+    // Load updated legend on the chart
+    this.addLegend();
+  }
+
+
   // Get min and max values of the selected dataset
   get_min_max_values() {
     var min_value = '';
@@ -571,6 +627,9 @@ class PGSBenchmark {
     }
     var interval = Math.abs(max_value - min_value);
     var interval_extra = (interval/100)*5;
+    if (interval_extra == 0) {
+      interval_extra = (max_value/100)*5;
+    }
 
     // Min value
     this.min_value = min_value - interval_extra;
@@ -578,14 +637,15 @@ class PGSBenchmark {
     this.max_value = max_value + interval_extra;
   }
 
+
   // Add tooltip on the chart elements
   addTooltip(elem, data) {
-    var title = "<b>"+data.grpName + "</b> ("+data.cohortGrpName.split(sep)[0]+")";
+    var title = '<div class="tooltip_title"><b>'+data.grpName + '</b> ('+data.cohortGrpName.split(sep)[0]+')</div>';
     if (data.et) {
-      title += "<br/>Upper 95: <b>" + data.et + "</b><br/>Estimate: <b>" + data.y + "</b><br/>Lower 95: <b>" + data.eb+"</b>";
+      title += "<div>Upper 95: <b>" + data.et + "</b></div><div>Estimate: <b>" + data.y + "</b></div><div>Lower 95: <b>" + data.eb+"</b></div>";
     }
     else {
-      title += "<br/>Value: <b>" + data.y + "</b>";
+      title += "<div>Value: <b>" + data.y + "</b></div>";
     }
     elem.tooltip({
       'title': title,
@@ -760,6 +820,8 @@ function svgString2Image( svgString, width, height, format) {//, callback ) {
  * Functions to fill and fetch the forms:
  * Cohort, Ancestry, Metric
  */
+
+// Build "Cohort" form
 function fill_cohort_form(data) {
   $("#benchmark_cohort_list").html('');
   var html_cb = '';
@@ -779,6 +841,8 @@ function fill_cohort_form(data) {
   $("#benchmark_cohort_list").append(html_cb);
 }
 
+
+// Build "Ancestry" form
 function fill_ancestry_form(data, cohorts) {
   var previous_unselected = [];
   $(".benchmark_ancestry_cb").each(function () {
@@ -806,6 +870,7 @@ function fill_ancestry_form(data, cohorts) {
   for (var k=0; k<ancestry_list.length;k++) {
     id = 'gpName_'+k;
     var ancestry = ancestry_list[k];
+    var colour = chart_colours[k];
     var is_checked = ' checked';
     if (previous_unselected.includes(ancestry)) {
       is_checked = '';
@@ -816,12 +881,14 @@ function fill_ancestry_form(data, cohorts) {
     }
     html_cb += '<div>'+
                '  <input type="checkbox" class="benchmark_ancestry_cb"'+is_checked+is_disabled+' value="'+ancestry+'" id="'+id+'">'+
-               '  <label class="mb-0" for="'+id+'"> '+ancestry+'</label>'+
+               '  <label class="mb-0" for="'+id+'"> '+ancestry+' (<span class="fa fa-minus" style="color:'+colour+'"></span>)</label>'+
                '</div>';
   }
   $("#benchmark_ancestry_list").append(html_cb);
 }
 
+
+// Build "Performance Metric" form
 function fill_metric_form(data, cohorts) {
 
   var previous_selection = $("#benchmark_metric_select option:selected").val();
@@ -849,6 +916,59 @@ function fill_metric_form(data, cohorts) {
     $("#benchmark_metric_select").append(option);
   }
 }
+
+
+// Build "Sex" form
+function fill_sex_form(data, cohorts) {
+
+  var previous_selection = $('input[name="benchmark_sex_type"]:checked').val();
+  var metric = $("#benchmark_metric_select option:selected").val();
+
+  $("#benchmark_sex_list").html('');
+  var sex_list = [];
+  var html_rb = '';
+  // Cohorts - fetch sexes
+  for (var i=0; i<cohorts.length;i++) {
+    var cohort = cohorts[i];
+    var cohort_sex_list = data.sexes[cohort];
+    // List sexes from the selected metric
+    if (metric in data.data[cohort]) {
+      // Sexes
+      for (var j=0; j<cohort_sex_list.length;j++) {
+        var sex_type = cohort_sex_list[j];
+        if (!sex_list.includes(sex_type) && sex_type in data.data[cohort][metric]) {
+          sex_list.push(sex_type);
+        }
+      }
+    }
+  }
+
+  // Setup the radio button selected by default
+  var entry_to_check = sex_list[0];
+  if (previous_selection && sex_list.includes(previous_selection)) {
+    entry_to_check = previous_selection;
+  }
+
+  // Generate HTML radio buttons
+  for (var k=0; k<sex_list.length;k++) {
+    id = 'sex_type_'+k;
+    var sex_type = sex_list[k];
+    var is_checked = '';
+    if (entry_to_check == sex_type) {
+      is_checked = ' checked';
+    }
+    var is_disabled = '';
+    if (sex_list.length == 1) {
+      is_disabled = ' disabled';
+    }
+    html_rb += '<div>'+
+               '  <input type="radio" name="benchmark_sex_type" class="benchmark_sex_type_rb"'+is_checked+is_disabled+' value="'+sex_type+'" id="'+id+'">'+
+               '  <label class="mb-0" for="'+id+'"> '+sex_type+'</label>'+
+               '</div>';
+  }
+  $("#benchmark_sex_list").append(html_rb);
+}
+
 
 // Set the list of selected cohorts
 function set_cohorts_list() {
