@@ -7,7 +7,8 @@ var chart_xaxis_label = 'PGS Catalog - Score ID';
 var chart_colours = ["#367DB7", "#4CAE49", "#974DA2", "#FF7F00", '#E50000'];
 // Point symbols/shapes to differenciate the cohorts data
 var chart_shapes = [ d3.symbolCircle, d3.symbolTriangle, d3.symbolDiamond, d3.symbolSquare, d3.symbolCross];
-
+// Horizontal lines - threshold
+var threshold = { 'HR': 1, 'OR': 1, 'C-index': 0.5, 'AUROC': 0.5, 'DeltaC': 0, 'deltaAUROC': 0};
 
 /*
  * Main class to build the 'PGS Benchmark' chart
@@ -96,7 +97,7 @@ class PGSBenchmark {
     this.addAxes();
 
     // Draw threshold/horizontal line
-    this.addHorizontalLine(this.min_value)
+    this.addHorizontalLine()
 
     // Load data in the chart
     this.addData();
@@ -137,20 +138,25 @@ class PGSBenchmark {
 
 
   // Draw the horizontal line (threshold)
-  addHorizontalLine(min_value) {
-    var y_coord = this.chartHeight/2;
-    if (min_value < 0) {
-      y_coord = this.y(0)
+  addHorizontalLine() {
+    var y_val = 0;
+    if (threshold[this.metric]) {
+      y_val = threshold[this.metric];
     }
-    this.g.append("line")
-      .attr("class", "hline")
-      .attr("stroke", 'black')
-      .attr("stroke-width", 1)
-      .style("stroke-dasharray", ("6, 6"))
-      .attr('x1', 0)
-      .attr('x2', this.chartWidth)
-      .attr('y1', y_coord)
-      .attr('y2', y_coord);
+    console.log("Y val ("+this.metric+"): "+y_val);
+    //var y_coord = this.chartHeight/2;
+    if (y_val > this.min_value && y_val < this.max_value) {
+      var y_coord = this.y(y_val)
+      this.g.append("line")
+        .attr("class", "chart_hline")
+        .attr("stroke", 'black')
+        .attr("stroke-width", 1)
+        .style("stroke-dasharray", ("6, 6"))
+        .attr('x1', 0)
+        .attr('x2', this.chartWidth)
+        .attr('y1', y_coord)
+        .attr('y2', y_coord);
+    }
   }
 
 
@@ -459,11 +465,11 @@ class PGSBenchmark {
     // Remove chart content + legend + XY axis + horizontal line
     this.svg.selectAll('.chart_content').remove();
     this.svg.selectAll('.chart_legend').remove();
+    this.svg.selectAll('.chart_hline').remove();
     this.svg.selectAll('.xaxis').remove();
     this.svg.selectAll('.yaxis').remove();
     this.svg.selectAll('.x_label').remove();
     this.svg.selectAll('.y_label').remove();
-    this.svg.selectAll('.hline').remove();
 
     // Refresh the forms
     fill_ancestry_form(this.chart_data, this.cohorts);
@@ -527,6 +533,7 @@ class PGSBenchmark {
     // Remove chart content + legend
     this.svg.selectAll('.chart_content').remove();
     this.svg.selectAll('.chart_legend').remove();
+    this.svg.selectAll('.chart_hline').remove();
 
     // Redraw Y axis
     // Setup the min/max for the Y scale
@@ -552,6 +559,8 @@ class PGSBenchmark {
         .text(this.metric);
 
 
+    // Redraw threshold/horizontal line
+    this.addHorizontalLine();
     // Load updated set of data to the chart
     this.addData();
     // Load updated legend on the chart
@@ -570,6 +579,7 @@ class PGSBenchmark {
     // Remove chart content + legend
     this.svg.selectAll('.chart_content').remove();
     this.svg.selectAll('.chart_legend').remove();
+    this.svg.selectAll('.chart_hline').remove();
 
     // Redraw Y axis
     // Setup the min/max for the Y scale
@@ -583,6 +593,8 @@ class PGSBenchmark {
       .transition().duration(800)
       .call( d3.axisLeft(this.y) );
 
+    // Redraw threshold/horizontal line
+    this.addHorizontalLine();
     // Load updated set of data to the chart
     this.addData();
     // Load updated legend on the chart
