@@ -68,12 +68,25 @@
         </div>
       </div>
       <!-- Sex form -->
-      <div id="benchmark_sex_type" class="filter_container">
+      <div id="benchmark_sex_type" class="filter_container mr-3">
         <div class="filter_header mb-1">Sex</div>
         <div id="benchmark_sex_list"></div>
       </div>
-    </div>
 
+      <div id="benchmark_ordering" class="filter_container">
+        <div class="filter_header mb-1">Order by</div>
+        <div id="benchmark_order_by_list">
+          <div>
+            <input type="radio" name="benchmark_order_by" class="benchmark_order_by_rb" value="ancestry" id="bm_order_by_0" checked>
+            <label class="mb-0" for="bm_order_by_0">Ancestry</label>
+          </div>
+          <div>
+            <input type="radio" name="benchmark_order_by" class="benchmark_order_by_rb" value="cohort" id="bm_order_by_1">
+            <label class="mb-0" for="bm_order_by_1">Cohort</label>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div>
       <div style="border:2px solid #007C82;border-radius:4px;padding:2px;float:left">
@@ -81,10 +94,16 @@
       </div>
       <div style="clear:both"></div>
     </div>
-    <div class="mt-2" style="display:flex">
-      <div class="btn btn-primary btn-sm mr-2" id="exportPDF">Export to PDF</div>
-      <div class="btn btn-primary btn-sm mr-2" id="exportSVG">Export to SVG</div>
-      <div class="btn btn-primary btn-sm" id="exportPNG">Export to PNG</div>
+    <div>
+      <div class="mt-2" style="border:1px solid #CCC;border-radius:4px;padding:6px 10px;float:left;display:flex">
+        <div class="mr-2" style="line-height:31px;vertical-align:middle;border-right:1px solid #CCC;font-weight:200;padding-right:10px">Export</div>
+        <div class="btn btn-primary btn-sm mr-2" id="exportPDF"><span class="fa fa-file-pdf-o mr-2"></span>PDF</div>
+        <div class="btn btn-primary btn-sm mr-2" id="exportSVG"><span class="fa fa-file-image-o mr-2"></span>SVG</div>
+        <div class="btn btn-primary btn-sm mr-2" id="exportPNG"><span class="fa fa-file-image-o mr-2"></span>PNG</div>
+        <a class="btn btn-primary btn-sm mr-2" id="exportJSON"><span class="fa fa-file-text-o mr-2"></span>JSON</a>
+        <a class="btn btn-primary btn-sm" id="exportCSV"><span class="fa fa-file-text-o mr-2"></span>CSV</a>
+      </div>
+      <div style="clear:both"></div>
     </div>
     <script type="text/javascript">
 
@@ -104,7 +123,7 @@
         },
         data: {
           "UKB": {
-            "HR": {
+            "Hazard Ratio": {
               "Both":
                 [
                   { pgs: 'PGS000055', grpName: 'European', y: 1.37, eb: 1.34, et: 1.41 },
@@ -139,7 +158,7 @@
                   { pgs: 'PGS000148', grpName: 'South Asian', y: 0.156825277, eb: -0.120120911, et: 0.433771465 }*/
                 ]
             },
-            "OR": {
+            "Odds Ratio": {
               "Both":
                 [
                   { pgs: 'PGS000055', grpName: 'European', y: 0.324198219, eb: 0.296680808, et: 0.35171563 },
@@ -201,7 +220,7 @@
             }
           },
           "EB": {
-            "HR": {
+            "Hazard Ratio": {
               "Both":
                 [
                   { pgs: 'PGS000055', grpName: 'European', y: 1.39, eb: 1.32, et: 1.42 },
@@ -218,7 +237,7 @@
                   { pgs: 'PGS000149', grpName: 'European', y: 0.249760526, eb: 0.222933579, et: 0.276587474 }*/
                 ]
             },
-            "OR": {
+            "Odds Ratio": {
               "Both":
                 [
                   { pgs: 'PGS000055', grpName: 'European', y: 0.324198219, eb: 0.296680808, et: 0.35171563 },
@@ -295,7 +314,7 @@
 
         $("#benchmark_cohort_list").on("change", ".benchmark_cohort_cb", function() {
           // Prevent having only unchecked checkboxes
-          if ($(".benchmark_cohort_cb:checked").length == 0 && !$(this).prop('checked')) {
+          if ($(".benchmark_cohort_cb:checked").parent(':visible').length == 0 && !$(this).prop('checked')) {
             $(this).prop("checked", true);
           }
           else {
@@ -305,7 +324,7 @@
 
         $("#benchmark_ancestry_list").on("change", ".benchmark_ancestry_cb",function() {
           // Prevent having only unchecked checkboxes
-          if ($(".benchmark_ancestry_cb:checked").length == 0 && !$(this).prop('checked')) {
+          if ($(".benchmark_ancestry_cb:checked").parent(':visible').length == 0 && !$(this).prop('checked')) {
             $(this).prop("checked", true);
           }
           else {
@@ -319,6 +338,10 @@
 
         $("#benchmark_sex_list").change(function() {
           benchmark.update_sex();
+        });
+
+        $('input[name="benchmark_order_by"]:radio').change(function() {
+          benchmark.update_ordering();
         });
       });
     </script>
