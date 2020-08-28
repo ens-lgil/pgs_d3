@@ -11,6 +11,12 @@ var chart_shapes = [ d3.symbolCircle, d3.symbolTriangle, d3.symbolDiamond, d3.sy
 var threshold = { 'Hazard Ratio': 1, 'Odds Ratio': 1, 'C-index': 0.5, 'AUROC': 0.5, 'DeltaC': 0, 'deltaAUROC': 0};
 // Font family
 var font_family = '"Helvetica", "Helvetica Neue", "Arial", "sans-serif"';
+// Min width
+var min_svg_width = 750;
+// Max width
+var max_svg_width = 1000;
+// Default height
+var default_svg_height = 500;
 
 
 /*
@@ -19,19 +25,24 @@ var font_family = '"Helvetica", "Helvetica Neue", "Arial", "sans-serif"';
 class PGSBenchmark {
 
   constructor(chart_data,width,height) {
-    // SVG space
-    this.svg = d3.select('svg').attr('width', width).attr('height', height);
 
-    this.margin = {top: 20, right: 130, bottom: 60, left: 60},
-        this.chartWidth = width - this.margin.left - this.margin.right,
-        this.chartHeight = height - this.margin.top - this.margin.bottom;
+    this.set_svg_width(width);
+    this.set_svg_height(height);
+
+    // SVG space
+    this.svg = d3.select('svg')
+      .attr('width', this.width)
+      .attr('height', this.height);
+
+    this.margin = {top: 20, right: 130, bottom: 60, left: 60};
+    this.set_chartWidthHeight();
     this.g = this.svg.append('g').attr('transform', 'translate(' + this.margin.left + ',' + this.margin.top + ')');
 
-    this.width = width;
-    this.height = height;
     this.chart_data = chart_data;
 
-    this.cohorts = set_cohorts_list();
+    this.cohorts_list = set_cohorts_list();
+
+    this.cohorts = set_cohorts_selection();
     this.set_cohort_data_shapes();
 
     this.exportJSON_button();
@@ -47,16 +58,21 @@ class PGSBenchmark {
     // Get the data corresponding to the filters selection
     this.set_selected_data();
 
-    // X axis categories
-    this.set_category_names();
-
     // Groups (ancestries)
     this.groupNames = set_groupNames();
     this.set_groupNames_colours();
 
+    // X axis categories
+    this.set_category_names();
+
     // X axis groups (ancestries)
     this.set_cohortGroupNames();
     this.set_cohortGroupNames_colours();
+
+    // Define the div for the tooltip
+    var div = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0);
 
     // Draw chart
     this.draw_chart();
@@ -65,14 +81,12 @@ class PGSBenchmark {
 
   // Draw the different components of the chart
   draw_chart() {
-    // Define the div for the tooltip
-    var div = d3.select("body").append("div")
-        .attr("class", "tooltip")
-        .style("opacity", 0);
 
     console.log(this.categoriesNames);
     console.log(this.groupNames);
     console.log(this.cohortGroupNames);
+
+    /* Setup scaling */
 
     // Setup the min/max for the Y scale
     this.get_min_max_values();
@@ -98,10 +112,33 @@ class PGSBenchmark {
     this.addLegend();
   }
 
+  // Redraw chart when the browser window is resized
+  redraw_chart() {
 
-  // Draw the chart axes
-  addAxes() {
-    // X axis
+    // Remove "old" chart
+    d3.select('svg').remove();
+
+    /* Set the new SVG width */
+    this.set_svg_width();
+    this.set_svg_height();
+    this.set_chartWidthHeight();
+
+    /* Reset chart container */
+    this.svg =  d3.select('#'+svg_id+'_container').append('svg')
+                  .attr('id', svg_id)
+                  .attr('height', this.height)
+                  .attr('width', this.width);
+    this.g = this.svg.append('g').attr('transform', 'translate(' + this.margin.left + ',' + this.margin.top + ')');
+
+    /* Redraw chart */
+    this.draw_chart()
+  }
+
+
+  /* Draw the chart axes */
+  // X Axis
+  addXAxis() {
+    // X axis - bar
     this.g.append('g')
       .attr("class", "xaxis")
       .attr('transform', 'translate(0,' + this.chartHeight + ')')
@@ -113,8 +150,10 @@ class PGSBenchmark {
       .attr("transform", "translate(" + (this.chartWidth/2) + " ," + (this.height - 20) + ")")
       .style("text-anchor", "middle")
       .text(chart_xaxis_label);
-
-    // Y axis
+  }
+  // Y Axis
+  addYAxis() {
+    // Y axis - bar
     this.g.append('g')
       .attr("class", "yaxis")
       .call( d3.axisLeft(this.y) );
@@ -128,6 +167,11 @@ class PGSBenchmark {
       .attr("dy", "1em")
       .style("text-anchor", "middle")
       .text(this.metric);
+  }
+  // X & Y Axes
+  addAxes() {
+    this.addXAxis();
+    this.addYAxis();
   }
 
 
@@ -324,6 +368,32 @@ class PGSBenchmark {
       });
   }
 
+  // Set SVG width
+  set_svg_width(width) {
+    if (!width) {
+      width = ($('body').width()) - 20;
+      if (!width || width < min_svg_width) {
+        width < min_svg_width;
+      }
+      if (width > max_svg_width) {
+        width = max_svg_width;
+      }
+    }
+    this.width = width;
+  }
+  // Set SVG height
+  set_svg_height(height) {
+    if (!height) {
+      height = default_svg_height;
+    }
+    this.height = height;
+  }
+  // Set chart content width and height
+  set_chartWidthHeight() {
+    this.chartWidth = this.width - this.margin.left - this.margin.right,
+    this.chartHeight = this.height - this.margin.top - this.margin.bottom;
+  }
+
   // Set axis scales
   set_x0_axis() {
     this.x0 = d3.scaleBand()
@@ -333,7 +403,6 @@ class PGSBenchmark {
   }
   set_x1_axis() {
     this.x1 = d3.scaleBand()
-      //.padding(0.05);
       .domain(this.cohortGroupNames)
       .rangeRound([0, this.x0.bandwidth()])
       .padding(1);
@@ -388,7 +457,6 @@ class PGSBenchmark {
     }
 
     this.cohortGroupNames = cohort_gp_list;
-    //this.set_cohortGroupNames_colours();
     this.set_cohortGroupNames_data_shapes();
   }
 
@@ -451,7 +519,21 @@ class PGSBenchmark {
 
 
   // Fetch the data of the selected cohorts
-  set_selected_data() {
+  set_selected_data(param) {
+    var available_cohorts = [];
+    // Get available cohorts for the selected metric and sex
+    for (var i=0; i<this.cohorts_list.length; i++) {
+      var cohort = this.cohorts_list[i];
+      var metrics = Object.keys(this.chart_data["data"][cohort]);
+      if (metrics.includes(this.metric)) {
+        var sexes = Object.keys(this.chart_data["data"][cohort][this.metric]);
+        if (sexes.includes(this.sex_type)) {
+          available_cohorts.push(cohort);
+        }
+      }
+    }
+
+    // Get data selection for the selected cohort, metric and sex
     this.selected_data = {};
     for (var i=0; i<this.cohorts.length; i++) {
       var cohort = this.cohorts[i];
@@ -467,21 +549,28 @@ class PGSBenchmark {
 
     /* Alter forms selection, depending on the selected dataset(s) */
     var available_groupNames = [];
-    // Hide "Cohort(s)" not having data for the selected metric
-    for (var i=0; i<this.cohorts.length; i++) {
-      var cohort = this.cohorts[i];
-      if (!this.selected_data[cohort]) {
-        $('.benchmark_cohort_cb[value="'+cohort+'"]').parent().hide();
-      }
-      else {
+    var obj = this;
+    var cohorts_selection = Object.keys(this.selected_data);
+    // Show/Hide "Cohort(s)" depending on the data availability for the selected metric
+    for (var i=0; i<this.cohorts_list.length; i++) {
+      var cohort = this.cohorts_list[i];
+      // Cohort with data for the selected metric
+      if (available_cohorts.includes(cohort) || this.selected_data[cohort]) {
         $('.benchmark_cohort_cb[value="'+cohort+'"]').parent().show();
-        // Get list of available groups (Ancestry) for the Cohorts/Metric/Sex selection
-        for (var j=0;j<this.selected_data[cohort].length;j++) {
-          var grpName = this.selected_data[cohort][j].grpName;
-          if (available_groupNames.indexOf(grpName) == -1) {
-            available_groupNames.push(grpName);
+
+        if (this.selected_data[cohort]) {
+          // Get list of available groups (Ancestry) for the Cohorts/Metric/Sex selection
+          for (var j=0;j<this.selected_data[cohort].length;j++) {
+            var grpName = this.selected_data[cohort][j].grpName;
+            if (available_groupNames.indexOf(grpName) == -1) {
+              available_groupNames.push(grpName);
+            }
           }
         }
+      }
+      // Cohort hasn't data for the selected metric
+      else {
+        $('.benchmark_cohort_cb[value="'+cohort+'"]').parent().hide();
       }
     }
 
@@ -499,7 +588,7 @@ class PGSBenchmark {
     // Hide the "Order by Cohort" option when only 1 Cohort is available/selected
     if (Object.keys(this.selected_data).length == 1) {
       // Set default data ordering before hiding the cohort option
-      $('.benchmark_order_by_rb[value="ancestry"]').prop("checked", true);
+      $('.benchmark_order_by_rb[value="ancestry"]').prop('checked', true);
       this.set_data_ordering();
       $('.benchmark_order_by_rb[value="cohort"]').parent().hide();
     }
@@ -509,14 +598,25 @@ class PGSBenchmark {
 
     // Disable "Cohort(s)" form if only 1 option available
     if ($('.benchmark_cohort_cb').parent(':visible').length < 2) {
-      $('.benchmark_cohort_cb').attr('disabled', true);
+      $('.benchmark_cohort_cb').each(function() {
+        if ($(this).parent().is(':visible')) {
+          $(this).prop('checked', true);
+          $(this).attr('disabled', true);
+        }
+      });
     }
     else {
       $('.benchmark_cohort_cb').attr('disabled', false);
     }
+
     // Disable "Ancestry(ies)" form if only 1 option available
     if ($('.benchmark_ancestry_cb').parent(':visible').length < 2) {
-      $('.benchmark_ancestry_cb').attr('disabled', true);
+      $('.benchmark_ancestry_cb').each(function() {
+        if ($(this).parent().is(':visible')) {
+          $(this).prop('checked', true);
+          $(this).attr('disabled', true);
+        }
+      });
     }
     else {
       $('.benchmark_ancestry_cb').attr('disabled', false);
@@ -530,11 +630,12 @@ class PGSBenchmark {
     var cohorts = Object.keys(this.selected_data);
     for (var i=0;i<cohorts.length;i++) {
       var cohort = cohorts[i];
-      var categories = this.chart_data.pgs_ids[cohort];
-      // Categories (PGS IDs)
-      for (var j=0; j<categories.length; j++) {
-        if (!cat_list.includes(categories[j])) {
-          cat_list.push(categories[j]);
+      var data_list = this.selected_data[cohort];
+      for (var j=0;j<data_list.length;j++) {
+        var pgs_id = data_list[j].pgs;
+        var ancestry = data_list[j].grpName;
+        if (!cat_list.includes(pgs_id) && this.groupNames.includes(ancestry)) {
+          cat_list.push(pgs_id);
         }
       }
     }
@@ -560,11 +661,10 @@ class PGSBenchmark {
   // This function updates the chart when an different cohort is selected
   update_cohort() {
     // Fetch selection of cohorts
-    this.cohorts = set_cohorts_list();
+    this.cohorts = set_cohorts_selection();
 
-    // Remove chart content + legend + horizontal line + XY axis
+    // Remove chart content + legend + X axis + horizontal line + XY axis
     this.remove_chart_main_components(1);
-    this.svg.selectAll('.xaxis').remove();
     this.svg.selectAll('.yaxis').remove();
     this.svg.selectAll('.x_label').remove();
     this.svg.selectAll('.y_label').remove();
@@ -577,15 +677,17 @@ class PGSBenchmark {
     // Reset some of the variables
     this.set_metric();
     this.set_sex_type();
+
+    // Reset the data list with the selected datasets
     this.set_selected_data();
 
-    // X axis categories
+    // Reset X axis categories
     this.set_category_names();
 
-    // Groups (ancestries)
+    // Reset groups (ancestries)
     this.groupNames = set_groupNames();
 
-    // X axis groups (ancestries)
+    // Reset X axis groups (ancestries)
     this.set_cohortGroupNames();
 
     // Redraw chart
@@ -597,39 +699,9 @@ class PGSBenchmark {
   update_ancestry() {
     // Reset the list of group names (Ancestry)
     this.groupNames = set_groupNames();
-    this.set_cohortGroupNames();
 
-    // Remove chart content + legend + horizontal line
-    this.remove_chart_main_components(1);
-
-    // Setup the min/max for the Y scale
-    this.get_min_max_values();
-
-    // Reset some of the axis
-    this.set_x1_axis();
-    this.set_z_axis();
-
-    // Redraw Y axis
-    this.set_y_axis(1)
-
-    // Change Y axis label
-    this.svg.selectAll('.y_label').remove();
-    this.svg.append("text")
-        .attr("class", "y_label")
-        .attr("font-family", font_family)
-        .attr("transform", "rotate(-90)")
-        .attr("y", 10)
-        .attr("x", 0 - (this.height / 2))
-        .attr("dy", "1em")
-        .style("text-anchor", "middle")
-        .text(this.metric);
-
-    // Redraw threshold/horizontal line
-    this.addHorizontalLine();
-    // Load updated set of data to the chart
-    this.addData();
-    // Load updated legend on the chart
-    this.addLegend();
+    // Generic update: reset the main variables and redraw the chart
+    this.generic_update(1);
   }
 
 
@@ -638,24 +710,16 @@ class PGSBenchmark {
     // Change the selected performance metric
     this.set_metric();
 
-    // Change the sex type
+    // Update the ancestry and sex type forms
+    fill_ancestry_form(this.chart_data, this.cohorts);
     fill_sex_form(this.chart_data, this.cohorts);
     this.set_sex_type();
 
+    // Reset the data list with the selected datasets
     this.set_selected_data();
-    this.set_cohortGroupNames();
 
-    // Remove chart content + legend + horizontal line
-    this.remove_chart_main_components(1);
-
-    // Setup the min/max for the Y scale
-    this.get_min_max_values();
-
-    // The scale for spacing each group's bar:
-    this.set_x1_axis();
-
-    // Redraw Y axis
-    this.set_y_axis(1);
+    // Reset groups (ancestries)
+    this.groupNames = set_groupNames();
 
     // Change Y axis label
     this.svg.selectAll('.y_label').remove();
@@ -669,13 +733,8 @@ class PGSBenchmark {
         .style("text-anchor", "middle")
         .text(this.metric);
 
-
-    // Redraw threshold/horizontal line
-    this.addHorizontalLine();
-    // Load updated set of data to the chart
-    this.addData();
-    // Load updated legend on the chart
-    this.addLegend();
+    // Generic update: reset the main variables and redraw the chart
+    this.generic_update();
   }
 
 
@@ -684,33 +743,17 @@ class PGSBenchmark {
     // Change the selected sex type
     this.set_sex_type();
 
+    // Reset the data list with the selected datasets
     this.set_selected_data();
-    this.set_cohortGroupNames();
 
-    // Remove chart content + legend + horizontal line
-    this.remove_chart_main_components(1);
-
-    // Setup the min/max for the Y scale
-    this.get_min_max_values();
-
-    // The scale for spacing each group's bar:
-    this.set_x1_axis();
-
-    // Redraw Y axis
-    this.set_y_axis(1);
-
-    // Redraw threshold/horizontal line
-    this.addHorizontalLine();
-    // Load updated set of data to the chart
-    this.addData();
-    // Load updated legend on the chart
-    this.addLegend();
+    // Generic update: reset the main variables and redraw the chart
+    this.generic_update();
   }
 
 
   // This function updates the ordering of the bars/points within a PGS Score
   update_ordering() {
-    // Remove chart content + legend
+    // Remove chart content + legend + X axis
     this.remove_chart_main_components();
 
     // Fetch the selected data ordering
@@ -728,10 +771,42 @@ class PGSBenchmark {
     this.addLegend();
   }
 
+
+  // Generic method updating the chart
+  generic_update(update_z) {
+    // Reset X axis groups (ancestries)
+    this.set_cohortGroupNames();
+
+    // Remove chart content + legend + X axis + horizontal line
+    this.remove_chart_main_components(1);
+
+    // Reset X axis categories
+    this.set_category_names();
+
+    // Setup the min/max for the Y scale
+    this.get_min_max_values();
+
+    // Reset the scales
+    this.set_x0_axis();
+    this.set_x1_axis();
+    this.set_y_axis(1);
+    this.set_z_axis();
+
+    // Redraw X axis
+    this.addXAxis();
+    // Redraw threshold/horizontal line
+    this.addHorizontalLine();
+    // Load updated set of data to the chart
+    this.addData();
+    // Load updated legend on the chart
+    this.addLegend();
+  }
+
   // Remove the main components of the chart
   remove_chart_main_components(include_hline) {
     this.svg.selectAll('.chart_content').remove();
     this.svg.selectAll('.chart_legend').remove();
+    this.svg.selectAll('.xaxis').remove();
     if (include_hline) {
       this.svg.selectAll('.chart_hline').remove();
     }
@@ -807,16 +882,15 @@ class PGSBenchmark {
     });
   }
 
+
   exportJSON_button() {
     let dataStr = JSON.stringify(this.chart_data);
     let dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
 
     let exportFileDefaultName = 'data.json';
 
-    //let linkElement = document.createElement('a');
     $('#exportJSON').attr('href', dataUri);
     $('#exportJSON').attr('download', exportFileDefaultName);
-    //linkElement.click();
   }
 
 
@@ -891,7 +965,6 @@ class PGSBenchmark {
 
     var exportFileDefaultName = 'data.csv';
 
-    //let linkElement = document.createElement('a');
     $('#exportCSV').attr('href', dataUri);
     $('#exportCSV').attr('download', exportFileDefaultName);
   }
@@ -1208,8 +1281,17 @@ function fill_sex_form(data, cohorts) {
 }
 
 
-// Set the list of selected cohorts
+// Set the list of cohorts
 function set_cohorts_list() {
+  var c_list = [];
+  $(".benchmark_cohort_cb").each(function () {
+    c_list.push($(this).val());
+  });
+  return c_list;
+}
+
+// Set the list of selected cohorts
+function set_cohorts_selection() {
   var c_list = [];
   $(".benchmark_cohort_cb").each(function () {
     if ($(this).prop("checked"))  {

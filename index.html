@@ -43,68 +43,105 @@
         padding-bottom: 4px;
         margin-bottom: 4px;
       }
+
+      #pgs_chart_super_container {
+        border:2px solid #007C82;
+        border-radius:4px;
+        float:left;
+      }
+      #pgs_chart_container {
+        padding:2px;
+      }
+
+      .pgs_benchmark_downloads {
+        border:1px solid #CCC;
+        border-radius:4px;
+        padding:6px 10px;
+        float:left;
+        display:flex;
+      }
+      .pgs_benchmark_downloads_title {
+        line-height:31px;
+        vertical-align:middle;
+        border-right:1px solid #CCC;
+        font-weight:200;
+        margin-right:10px;
+        padding-right:10px;
+      }
     </style>
   </head>
 
   <body>
     <h2>D3 test</h2>
     <div style="display:flex;margin-bottom:1rem">
-      <!-- Cohort form -->
-      <div id="benchmark_cohort" class="filter_container mr-3">
-        <div class="filter_header mb-1">Cohort</div>
-        <div id="benchmark_cohort_list"></div>
-      </div>
-      <!-- Ancestry form -->
-      <div id="benchmark_ancestry" class="filter_container mr-3">
-        <div class="filter_header mb-1">Ancestry</div>
-        <div id="benchmark_ancestry_list"></div>
-      </div>
-      <!-- Performance metric form -->
-      <div id="benchmark_metric" class="filter_container mr-3">
-        <div class="filter_header mb-2">Performance metric</div>
-        <div>
-          <select id="benchmark_metric_select">
-          </select>
+      <div style="display:flex">
+        <!-- Cohort form -->
+        <div id="benchmark_cohort" class="filter_container mr-3">
+          <div class="filter_header mb-1">Cohort</div>
+          <div id="benchmark_cohort_list"></div>
+        </div>
+        <!-- Ancestry form -->
+        <div id="benchmark_ancestry" class="filter_container mr-3">
+          <div class="filter_header mb-1">Ancestry</div>
+          <div id="benchmark_ancestry_list"></div>
         </div>
       </div>
-      <!-- Sex form -->
-      <div id="benchmark_sex_type" class="filter_container mr-3">
-        <div class="filter_header mb-1">Sex</div>
-        <div id="benchmark_sex_list"></div>
-      </div>
-
-      <div id="benchmark_ordering" class="filter_container">
-        <div class="filter_header mb-1">Order by</div>
-        <div id="benchmark_order_by_list">
+      <div style="display:flex">
+        <!-- Performance metric form -->
+        <div id="benchmark_metric" class="filter_container mr-3">
+          <div class="filter_header mb-2">Performance metric</div>
           <div>
-            <input type="radio" name="benchmark_order_by" class="benchmark_order_by_rb" value="ancestry" id="bm_order_by_0" checked>
-            <label class="mb-0" for="bm_order_by_0">Ancestry</label>
+            <select id="benchmark_metric_select">
+            </select>
           </div>
-          <div>
-            <input type="radio" name="benchmark_order_by" class="benchmark_order_by_rb" value="cohort" id="bm_order_by_1">
-            <label class="mb-0" for="bm_order_by_1">Cohort</label>
+        </div>
+        <!-- Sex form -->
+        <div id="benchmark_sex_type" class="filter_container mr-3">
+          <div class="filter_header mb-1">Sex</div>
+          <div id="benchmark_sex_list"></div>
+        </div>
+        <!-- Data ordering -->
+        <div id="benchmark_ordering" class="filter_container">
+          <div class="filter_header mb-1">Order by</div>
+          <div id="benchmark_order_by_list">
+            <div>
+              <input type="radio" name="benchmark_order_by" class="benchmark_order_by_rb" value="ancestry" id="bm_order_by_0" checked>
+              <label class="mb-0" for="bm_order_by_0">Ancestry</label>
+            </div>
+            <div>
+              <input type="radio" name="benchmark_order_by" class="benchmark_order_by_rb" value="cohort" id="bm_order_by_1">
+              <label class="mb-0" for="bm_order_by_1">Cohort</label>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
     <div>
-      <div style="border:2px solid #007C82;border-radius:4px;padding:2px;float:left">
-        <svg id="pgs_chart"></svg>
+      <div id="pgs_chart_super_container">
+        <div id="pgs_chart_container">
+          <svg id="pgs_chart"></svg>
+        </div>
       </div>
       <div style="clear:both"></div>
     </div>
+
     <div>
-      <div class="mt-2" style="border:1px solid #CCC;border-radius:4px;padding:6px 10px;float:left;display:flex">
-        <div class="mr-2" style="line-height:31px;vertical-align:middle;border-right:1px solid #CCC;font-weight:200;padding-right:10px">Export</div>
-        <div class="btn btn-primary btn-sm mr-2" id="exportPDF"><span class="fa fa-file-pdf-o mr-2"></span>PDF</div>
-        <div class="btn btn-primary btn-sm mr-2" id="exportSVG"><span class="fa fa-file-image-o mr-2"></span>SVG</div>
-        <div class="btn btn-primary btn-sm mr-2" id="exportPNG"><span class="fa fa-file-image-o mr-2"></span>PNG</div>
-        <a class="btn btn-primary btn-sm mr-2" id="exportJSON"><span class="fa fa-file-text-o mr-2"></span>JSON</a>
-        <a class="btn btn-primary btn-sm" id="exportCSV"><span class="fa fa-file-text-o mr-2"></span>CSV</a>
+      <div class="pgs_benchmark_downloads mt-2">
+        <div class="pgs_benchmark_downloads_title">Export</div>
+        <div style="display:flex">
+          <div class="btn btn-primary btn-sm mr-2" id="exportPDF"><span class="fa fa-file-pdf-o mr-2"></span>PDF</div>
+          <div class="btn btn-primary btn-sm mr-2" id="exportSVG"><span class="fa fa-file-image-o mr-2"></span>SVG</div>
+          <div class="btn btn-primary btn-sm mr-2" id="exportPNG"><span class="fa fa-file-image-o mr-2"></span>PNG</div>
+        </div>
+        <div style="display:flex">
+          <a class="btn btn-primary btn-sm mr-2" id="exportJSON"><span class="fa fa-file-text-o mr-2"></span>JSON</a>
+          <a class="btn btn-primary btn-sm" id="exportCSV"><span class="fa fa-file-text-o mr-2"></span>CSV</a>
+        </div>
       </div>
       <div style="clear:both"></div>
     </div>
+
     <script type="text/javascript">
 
       const pgs_data = {
@@ -342,6 +379,10 @@
 
         $('input[name="benchmark_order_by"]:radio').change(function() {
           benchmark.update_ordering();
+        });
+
+        window.addEventListener('resize', function(event){
+          benchmark.redraw_chart();
         });
       });
     </script>
